@@ -21,7 +21,7 @@ skip 'Catalyst::Action::REST not installed', 1 if eval 'use Catalyst::Action::RE
 # should break if request_class is not set correctly
         $c->req->accepted_content_types;
 
-        $c->res->redirect($c->uri_for('/foo'));
+        $c->res->output($c->req->uri_with({foo => 'bar'}));
     }
 
     __PACKAGE__->setup();
@@ -29,8 +29,8 @@ skip 'Catalyst::Action::REST not installed', 1 if eval 'use Catalyst::Action::RE
 
 use Catalyst::Test 'TestApp';
 
-is(request('/foo')->header('location'), '/foo',
-    'redirect location from C::A::REST');
+is(get('/foo'), '/foo?foo=bar',
+    'C::A::REST and SmartURI are both functional');
 
 }
 

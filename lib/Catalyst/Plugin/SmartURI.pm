@@ -62,15 +62,19 @@ sub uri_for {
 sub setup_engine {
     my $app = shift;
 
-    my $new_request_class = $app.'::Request::SmartURI';
-    Class::C3::Componentised->inject_base(
-        $new_request_class,
-        'Catalyst::Request::SmartURI',
-        $app->request_class
-    );
-    Class::C3::reinitialize();
+    my $request_class = $app->request_class;
 
-    $app->request_class($new_request_class);
+    unless ($request_class->isa('Catalyst::Request::SmartURI')) {
+        my $new_request_class = $app.'::Request::SmartURI';
+        Class::C3::Componentised->inject_base(
+            $new_request_class,
+            'Catalyst::Request::SmartURI',
+            $request_class
+        );
+        Class::C3::reinitialize();
+
+        $app->request_class($new_request_class);
+    }
 
     $app->next::method(@_)
 }
