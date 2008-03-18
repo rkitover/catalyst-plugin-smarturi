@@ -32,7 +32,7 @@ use File::Spec::Functions qw/splitpath splitdir catfile/;
 use List::MoreUtils 'firstidx';
 use Scalar::Util 'blessed';
 use List::Util 'first';
-use IO::Scalar;
+require Exporter;
 
 use base 'Class::Accessor::Fast';
 
@@ -43,7 +43,7 @@ __PACKAGE__->mk_ro_accessors(qw/obj factory_class/);
 sub new {
     my $class = shift;
 
-    my $self = {obj => URI->new($class->deflate(@_)), factory_class => $class};
+    my $self = {obj => URI->new($class->deflate_params(@_)), factory_class => $class};
 
     bless $self, $class->make_uri_class(blessed $self->{obj}, 1);
 }
@@ -51,7 +51,7 @@ sub new {
 sub new_abs {
     my $class = shift;
 
-    my $self = {obj => URI->new_abs($class->deflate(@_)), factory_class => $class};
+    my $self = {obj => URI->new_abs($class->deflate_params(@_)), factory_class => $class};
 
     bless $self, $class->make_uri_class(blessed $self->{obj}, 1);
 }
@@ -59,7 +59,7 @@ sub new_abs {
 sub newlocal {
     my $class = shift;
 
-    my $self = {obj => URI::URL->newlocal($class->deflate(@_)), factory_class => $class};
+    my $self = {obj => URI::URL->newlocal($class->deflate_params(@_)), factory_class => $class};
 
     bless $self, $class->make_uri_class(blessed $self->{obj}, 1);
 }
@@ -91,11 +91,11 @@ sub AUTOLOAD {
 
     my @res;
     if (wantarray) {
-        @res    = $self->obj->$method($class->deflate(@_));
+        @res    = $self->obj->$method($class->deflate_params(@_));
     } else {
-        $res[0] = $self->obj->$method($class->deflate(@_));
+        $res[0] = $self->obj->$method($class->deflate_params(@_));
     }
-    @res = $class->inflate(@res);
+    @res = $class->inflate_params(@res);
 
     return wantarray ? @res : $res[0];
 }
@@ -176,24 +176,57 @@ sub make_uri_class {
     my $new_uri_class = $class->resolve_uri_class($uri_class);
 
     no strict 'refs';
+    no warnings 'redefine';
 
     unless (%{$new_uri_class.'::'}) {
-        Class::C3::Componentised->inject_base($new_uri_class, $class);
+        Class::C3::Componentised->inject_base($new_uri_class, $class, 'Exporter');
 
         *{$new_uri_class.'::new'} = sub {
             eval "require $uri_class";
             bless {
-                obj => $uri_class->new($class->deflate(@_[1..$#_])),
+                obj => $uri_class->new($class->deflate_params(@_[1..$#_])),
                 factory_class => $class
             }, $new_uri_class;
         };
 
         *{$new_uri_class.'::import'} = sub {
-            eval "require $uri_class";
-            if (my $code = $uri_class->can('import')) {
-                splice @_, 0, 1, $uri_class;
-                goto &$code;
+            shift; # $class
+
+            eval "require $uri_class;";
+            # URI doesn't use tags, thank god...
+            my @vars = grep /^\W/, @_;
+            my @subs = (@{$uri_class.'::EXPORT'}, grep /^\w/, @_);
+
+            if (@vars) {
+                my $import = $uri_class->can('import');
+                @_ = ($uri_class, @vars);
+                goto &$import;
             }
+
+            for (@subs) {
+                my $sub   = $uri_class."::$_";
+                my $proto = prototype $sub;
+                $proto    = $proto ? "($proto)" : '';
+                eval qq{
+                    sub ${new_uri_class}::$_ $proto {
+                        my \@res;
+                        if (wantarray) {
+                            \@res    = &${sub}($class->deflate_params(\@_));
+                        } else {
+                            \$res[0] = &${sub}($class->deflate_params(\@_));
+                        }
+
+                        \@res = $class->inflate_params(\@res);
+
+                        return wantarray ? \@res : \$res[0];
+                    }
+                };
+            }
+
+            @{$new_uri_class."::EXPORT_OK"} = @subs;
+
+            local $^W; # get rid of more redefined warnings
+            $new_uri_class->export_to_level(1, $new_uri_class, @subs);
         };
 
         Class::C3::reinitialize() if $re_init_c3;
@@ -202,20 +235,22 @@ sub make_uri_class {
     return $new_uri_class;
 }
 
-sub inflate {
+sub inflate_params {
     my $class = shift;
 
-    map { blessed $_ ?
+    my @res = map { blessed($_) && blessed($_) =~ /^URI::/ ?
             bless { obj => $_, factory_class => $class },
                 $class->make_uri_class(blessed $_, 1)
           :
                 $_
     } @_;
+    @res ? @res == 1 ? $res[0] : @res : ();
 }
 
-sub deflate {
+sub deflate_params {
     my $class = shift;
-    map { blessed $_ && $_->isa($class) ?  $_->{obj} : $_ } @_
+    my @res   = map { blessed $_ && $_->isa($class) ?  $_->{obj} : $_ } @_;
+    @res ? @res == 1 ? $res[0] : @res : ();
 }
 
 =head1 AUTHOR
