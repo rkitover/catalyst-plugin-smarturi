@@ -81,23 +81,31 @@ sub hostless {
 
 sub AUTOLOAD {
     use vars '$AUTOLOAD';
-    my $self      = shift;
+    no strict 'refs';
+    my $self   = $_[0];
 # stolen from URI sources
-    my $method    = substr($AUTOLOAD, rindex($AUTOLOAD, '::')+2);
+    my $method = substr($AUTOLOAD, rindex($AUTOLOAD, '::')+2);
 
     return if ! blessed $self || $method eq 'DESTROY';
 
-    my $class     = $self->factory_class;
+    my $class  = $self->factory_class;
 
-    my @res;
-    if (wantarray) {
-        @res    = $self->obj->$method($class->deflate_params(@_));
-    } else {
-        $res[0] = $self->obj->$method($class->deflate_params(@_));
-    }
-    @res = $class->inflate_params(@res);
+    my $sub    = blessed($self)."::$method";
 
-    return wantarray ? @res : $res[0];
+    *{$sub} = sub {
+        my $self = shift;
+        my @res;
+        if (wantarray) {
+            @res    = $self->obj->$method($class->deflate_params(@_));
+        } else {
+            $res[0] = $self->obj->$method($class->deflate_params(@_));
+        }
+        @res = $class->inflate_params(@res);
+
+        return wantarray ? @res : $res[0];
+    };
+    
+    goto &{$sub};
 }
 
 use overload
