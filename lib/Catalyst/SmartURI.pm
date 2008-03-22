@@ -17,9 +17,16 @@ our $VERSION = '0.01';
 
 =head1 SYNOPSIS
 
-    my $uri = Catalyst::SmartURI->new('http://catalyst.perl.org/calendar');
+    my $uri = Catalyst::SmartURI->new(
+        'http://host/foo/',
+        { reference => 'http://host/bar/' }
+    );
 
-    my $hostless= $uri->hostless; # stringifies to '/catalyst.perl.org/calendar'
+    my $hostless = $uri->hostless; # '/foo/'
+
+    $hostless->absolute; # 'http://host/foo/'
+
+    $uri->relative; # '../foo/'
 
 =cut
 
@@ -37,56 +44,177 @@ require Exporter;
 use base 'Class::Accessor::Fast';
 
 __PACKAGE__->mk_ro_accessors(qw/obj factory_class/);
+__PACKAGE__->mk_accessors(qw/reference/);
 
-# Constructors
+=head1 DESCRIPTION
+
+This is a sort of "subclass" of URI using delegation with some extra methods,
+all the methods that work for L<URI>s will work on these objects as well.
+
+It's similar in spirit to L<URI::WithBase>.
+
+=head1 CONSTRUCTORS
+
+=head2 Catalyst::SmartURI->new($str,
+    [$scheme|{reference => $base, scheme => $scheme}])
+
+Takes a URI and an optional scheme or hashref with a reference uri
+(for computing relative/absolute URIs) and an optional scheme.
+
+    my $uri = Catalyst::SmartURI->new('http://dev.catalyst.perl.org/');
+
+    my $uri = Catalyst::SmartURI->new('/catwiki.toeat.com/', 'http');
+
+    my $uri = Catalyst::SmartURI->new(
+        'http://search.cpan.org/~jrockway/Catalyst-Manual-5.701003/', 
+        { reference => 'http://search.cpan.org/' }
+    );
+
+=cut
 
 sub new {
-    my $class = shift;
+    my ($class, $uri, $opts) = @_;
 
-    my $self = {obj => URI->new($class->deflate_params(@_)), factory_class => $class};
+    $opts = { scheme => $opts }
+        unless ref($opts) && ref($opts) eq 'HASH';
+
+    my $self = {
+        obj       => URI->new($class->deflate_uris($uri, $opts->{scheme})),
+        reference => $opts->{reference},
+        factory_class => $class
+    };
 
     bless $self, $class->make_uri_class(blessed $self->{obj}, 1);
 }
+
+=head2 Catalyst::SmartURI->new_abs($str, $base_uri)
+
+Proxy for L<URI>->new_abs
+
+=cut
 
 sub new_abs {
     my $class = shift;
 
-    my $self = {obj => URI->new_abs($class->deflate_params(@_)), factory_class => $class};
+    my $self = {
+        obj => URI->new_abs($class->deflate_uris(@_)),
+        factory_class => $class
+    };
 
     bless $self, $class->make_uri_class(blessed $self->{obj}, 1);
 }
+
+=head2 Catalyst::SmartURI->newlocal($filename, [$os])
+
+Proxy for L<URI::URL>->newlocal
+
+=cut
 
 sub newlocal {
     my $class = shift;
 
-    my $self = {obj => URI::URL->newlocal($class->deflate_params(@_)), factory_class => $class};
+    my $self = {
+        obj => URI::URL->newlocal($class->deflate_uris(@_)),
+        factory_class => $class
+    };
 
     bless $self, $class->make_uri_class(blessed $self->{obj}, 1);
 }
 
-# Utilities
+=head1 METHODS
+
+=head2 $uri->hostless
+
+Returns the URI with the scheme and host parts stripped.
+
+=cut
 
 sub hostless {
-    my $uri = shift;
+    my $uri = shift->clone;
 
-    $uri->scheme('');
+    my $scheme = $uri->scheme('');
     $uri->host('');
 
-    my $class = blessed $uri;
+    $uri->factory_class->new(($uri =~ m!^/*(/.*)!), {
+        reference => $uri->reference,
+        scheme    => $scheme
+    });
+}
 
-    return $class->new( $uri =~ m!^/*(/.*)! );
+=head2 $uri->reference
+
+Accessor for the reference URI (for relative/absolute below.)
+
+=head2 $uri->relative
+
+Returns the URI relative to the reference URI.
+
+=cut
+
+sub relative { $_[0]->rel($_[0]->reference) }
+
+=head2 $uri->absolute
+
+Returns the absolute URI using the reference URI as base.
+
+=cut
+
+sub absolute { $_[0]->abs($_[0]->reference) }
+
+=head2 $uri->opts
+
+Returns a hashref of options for the $uri (reference and scheme.)
+
+=cut
+
+sub opts { +{
+    reference => $_[0]->reference || undef,
+    scheme => $_[0]->scheme || undef
+} }
+
+=head2 ""
+
+stringification works, just like with L<URI>s
+
+=head2 ==
+
+and == does as well
+
+=cut
+
+use overload
+    '""' => sub { "".$_[0]->obj },
+    '==' =>
+        sub { overload::StrVal($_[0]->obj) eq overload::StrVal($_[1]->obj) },
+    fallback => 1;
+
+=head2 $uri->eq($other_uri)
+
+Explicit equality check to another URI, can be used as
+Catalyst::SmartURI::eq($uri1, $uri2) as well.
+
+=cut
+
+sub eq {
+    my ($self, $other) = @_;
+
+# Support URI::eq($first, $second) syntax. Not inheritance-safe :(
+    $self = blessed $self ? $self : __PACKAGE__->new($self);
+
+    return $self->obj->eq(ref $other eq blessed $self ? $other->obj : $other);
 }
 
 # The gory details
 
 sub AUTOLOAD {
-    use vars '$AUTOLOAD';
+    use vars qw/$CAN $AUTOLOAD/;
     no strict 'refs';
     my $self   = $_[0];
 # stolen from URI sources
     my $method = substr($AUTOLOAD, rindex($AUTOLOAD, '::')+2);
 
-    return if ! blessed $self || $method eq 'DESTROY';
+    return if ! blessed $self || $method eq 'DESTROY'
+                              || !  $self->obj->can($method);
 
     my $class  = $self->factory_class;
 
@@ -96,31 +224,35 @@ sub AUTOLOAD {
         my $self = shift;
         my @res;
         if (wantarray) {
-            @res    = $self->obj->$method($class->deflate_params(@_));
+            @res    = $self->obj->$method($class->deflate_uris(@_));
         } else {
-            $res[0] = $self->obj->$method($class->deflate_params(@_));
+            $res[0] = $self->obj->$method($class->deflate_uris(@_));
         }
-        @res = $class->inflate_params(@res);
+        @res = $class->inflate_uris(
+            \@res,
+            $method ne 'scheme' ? $self->opts : {}
+        );
 
         return wantarray ? @res : $res[0];
     };
+
+    Class::C3::reinitialize;
     
-    goto &{$sub};
+    $CAN ? \&$sub : goto &$sub;
 }
 
-use overload
-    '""' => sub { "".$_[0]->obj },
-    '==' =>
-        sub { overload::StrVal($_[0]->obj) eq overload::StrVal($_[1]->obj) },
-    fallback => 1;
+sub can { # of PORK BRAINS in MILK GRAVY, yum!!!
+    no strict 'refs';
+    use vars qw/$CAN $AUTOLOAD/;
+    my ($self, $method) = @_;
 
-sub eq {
-    my ($self, $other) = @_;
+    my $existing = eval { $self->next::method($method) };
+    return $existing if $existing;
 
-# Support URI::eq($first, $second) syntax. Not inheritance-safe :(
-    $self = blessed $self ? $self : __PACKAGE__->new($self);
+    local $AUTOLOAD = ref($self)."::$method";
+    local $CAN      = 1;
 
-    return $self->obj->eq(ref $other eq blessed $self ? $other->obj : $other);
+    &{$self->factory_class.'::AUTOLOAD'}($self)
 }
 
 # Preload some URI classes, the ones that come in files anyway
@@ -165,10 +297,18 @@ sub import {
         }
     };
 
-    Class::C3::reinitialize();
+    Class::C3::reinitialize;
 
     ${$class.'::__INITIALIZED__'} = 1;
 }
+
+=head1 INTERNAL METHODS
+
+=head2 $class->resolve_uri_class($uri_class)
+
+Converts, eg., "URI::http" to "Catalyst::SmartURI::http".
+
+=cut
 
 sub resolve_uri_class {
     my ($class, $uri_class) = @_;
@@ -177,6 +317,13 @@ sub resolve_uri_class {
 
     return $new_class;
 }
+
+=head2 $class->make_uri_class($uri_class)
+
+Creates a new proxy class class for a L<URI> class, with all exports and
+constructor intact.
+
+=cut
 
 sub make_uri_class {
     my ($class, $uri_class, $re_init_c3) = @_;
@@ -187,12 +334,14 @@ sub make_uri_class {
     no warnings 'redefine';
 
     unless (%{$new_uri_class.'::'}) {
-        Class::C3::Componentised->inject_base($new_uri_class, $class, 'Exporter');
+        Class::C3::Componentised->inject_base(
+            $new_uri_class, $class, 'Exporter'
+        );
 
         *{$new_uri_class.'::new'} = sub {
             eval "require $uri_class";
             bless {
-                obj => $uri_class->new($class->deflate_params(@_[1..$#_])),
+                obj => $uri_class->new($class->deflate_uris(@_[1..$#_])),
                 factory_class => $class
             }, $new_uri_class;
         };
@@ -219,12 +368,12 @@ sub make_uri_class {
                     sub ${new_uri_class}::$_ $proto {
                         my \@res;
                         if (wantarray) {
-                            \@res    = &${sub}($class->deflate_params(\@_));
+                            \@res    = &${sub}($class->deflate_uris(\@_));
                         } else {
-                            \$res[0] = &${sub}($class->deflate_params(\@_));
+                            \$res[0] = &${sub}($class->deflate_uris(\@_));
                         }
 
-                        \@res = $class->inflate_params(\@res);
+                        \@res = $class->inflate_uris(\\\@res);
 
                         return wantarray ? \@res : \$res[0];
                     }
@@ -237,25 +386,45 @@ sub make_uri_class {
             $new_uri_class->export_to_level(1, $new_uri_class, @subs);
         };
 
-        Class::C3::reinitialize() if $re_init_c3;
+        Class::C3::reinitialize if $re_init_c3;
     }
 
     return $new_uri_class;
 }
 
-sub inflate_params {
+=head2 $class->inflate_uris(\@rray, $opts)
+
+Inflate any L<URI> objects in @rray into Catalyst::SmartURI objects, all other
+members pass through unharmed. $opts is a hashref of options to include in the
+objects created.
+
+=cut
+
+sub inflate_uris {
     my $class = shift;
+    my ($args, $opts) = @_;
 
     my @res = map { blessed($_) && blessed($_) =~ /^URI::/ ?
-            bless { obj => $_, factory_class => $class },
+            bless {
+                    obj => $_,
+                    factory_class => $class,
+                    (defined $opts ? %$opts : ())
+                  },
                 $class->make_uri_class(blessed $_, 1)
           :
                 $_
-    } @_;
+    } @$args;
     @res ? @res == 1 ? $res[0] : @res : ();
 }
 
-sub deflate_params {
+=head2 $class->deflate_uris(@rray)
+
+Deflate any L<Catalyst::SmartURI> objects in @rray into the L<URI> objects
+they are proxies for, all other members pass through unharmed.
+
+=cut
+
+sub deflate_uris {
     my $class = shift;
     my @res   = map { blessed $_ && $_->isa($class) ?  $_->{obj} : $_ } @_;
     @res ? @res == 1 ? $res[0] : @res : ();
@@ -267,6 +436,6 @@ Rafael Kitover, C<< <rkitover at cpan.org> >>
 
 =cut
 
-'LONG LIVE THE ALMIGHTY BUNGHOLE'; # End of Catalyst::SmartURI
+'LONG LIVE THE ALMIGHTY BUNGHOLE';
 
 # vim: expandtab shiftwidth=4 ts=4 tw=80:

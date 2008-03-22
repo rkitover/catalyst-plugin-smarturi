@@ -45,7 +45,10 @@ use Catalyst::SmartURI;
 sub uri_for {
     my $c = shift;
 
-    Catalyst::SmartURI->new($c->next::method(@_))->hostless;
+    Catalyst::SmartURI->new(
+        $c->next::method(@_),
+        { reference => $c->req->uri }
+    )->hostless;
 }
 
 {
@@ -55,7 +58,10 @@ sub uri_for {
     sub uri_with {
         my $req = shift;
 
-        Catalyst::SmartURI->new($req->next::method(@_))->hostless;
+        Catalyst::SmartURI->new(
+            $req->next::method(@_),
+            { reference => $req->uri }
+        )->hostless;
     }
 }
 
