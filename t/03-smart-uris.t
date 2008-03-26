@@ -23,7 +23,10 @@ is($uri->relative, 'calendar', '$uri->relative');
 
 is($uri->absolute, 'http://www.catalystframework.org/calendar', '$uri->absolute');
 
-is($uri->relative->absolute, 'http://www.catalystframework.org/calendar',
-    'sticky reference URI');
+is(
+    $uri->relative->absolute->hostless->relative->absolute,
+    'http://www.catalystframework.org/calendar',
+    'sticky reference URI'
+);
 
 # vim: expandtab shiftwidth=4 ts=4 tw=80:

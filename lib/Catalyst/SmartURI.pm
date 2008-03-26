@@ -48,17 +48,19 @@ __PACKAGE__->mk_accessors(qw/reference/);
 
 =head1 DESCRIPTION
 
-This is a sort of "subclass" of URI using delegation with some extra methods,
+This is a sort of "subclass" of L<URI> using delegation with some extra methods,
 all the methods that work for L<URI>s will work on these objects as well.
 
 It's similar in spirit to L<URI::WithBase>.
 
+It's also completely safe to subclass for your own use.
+
 =head1 CONSTRUCTORS
 
 =head2 Catalyst::SmartURI->new($str,
-    [$scheme|{reference => $base, scheme => $scheme}])
+    [$scheme|{reference => $ref, scheme => $scheme}])
 
-Takes a URI and an optional scheme or hashref with a reference uri
+Takes a uri $str and an optional scheme or hashref with a reference uri
 (for computing relative/absolute URIs) and an optional scheme.
 
     my $uri = Catalyst::SmartURI->new('http://dev.catalyst.perl.org/');
@@ -70,6 +72,10 @@ Takes a URI and an optional scheme or hashref with a reference uri
         { reference => 'http://search.cpan.org/' }
     );
 
+The object returned will be blessed into a scheme-specific subclass, based on
+the class of the underlying $uri->obj (L<URI> object.) For example,
+Catalyst::SmartURI::http, and this class derives from the L<Catalyst::SmartURI>.
+
 =cut
 
 sub new {
@@ -79,12 +85,12 @@ sub new {
         unless ref($opts) && ref($opts) eq 'HASH';
 
     my $self = {
-        obj       => URI->new($class->deflate_uris($uri, $opts->{scheme})),
+        obj       => URI->new($class->_deflate_uris($uri, $opts->{scheme})),
         reference => $opts->{reference},
         factory_class => $class
     };
 
-    bless $self, $class->make_uri_class(blessed $self->{obj}, 1);
+    bless $self, $class->_make_uri_class(blessed $self->{obj}, 1);
 }
 
 =head2 Catalyst::SmartURI->new_abs($str, $base_uri)
@@ -97,11 +103,11 @@ sub new_abs {
     my $class = shift;
 
     my $self = {
-        obj => URI->new_abs($class->deflate_uris(@_)),
+        obj => URI->new_abs($class->_deflate_uris(@_)),
         factory_class => $class
     };
 
-    bless $self, $class->make_uri_class(blessed $self->{obj}, 1);
+    bless $self, $class->_make_uri_class(blessed $self->{obj}, 1);
 }
 
 =head2 Catalyst::SmartURI->newlocal($filename, [$os])
@@ -114,11 +120,11 @@ sub newlocal {
     my $class = shift;
 
     my $self = {
-        obj => URI::URL->newlocal($class->deflate_uris(@_)),
+        obj => URI::URL->newlocal($class->_deflate_uris(@_)),
         factory_class => $class
     };
 
-    bless $self, $class->make_uri_class(blessed $self->{obj}, 1);
+    bless $self, $class->_make_uri_class(blessed $self->{obj}, 1);
 }
 
 =head1 METHODS
@@ -130,15 +136,12 @@ Returns the URI with the scheme and host parts stripped.
 =cut
 
 sub hostless {
-    my $uri = shift->clone;
+    my $uri = $_[0]->clone;
 
     my $scheme = $uri->scheme('');
     $uri->host('');
 
-    $uri->factory_class->new(($uri =~ m!^/*(/.*)!), {
-        reference => $uri->reference,
-        scheme    => $scheme
-    });
+    $uri->factory_class->new(($uri =~ m!^/*(/.*)!), $_[0]->_opts);
 }
 
 =head2 $uri->reference
@@ -160,17 +163,6 @@ Returns the absolute URI using the reference URI as base.
 =cut
 
 sub absolute { $_[0]->abs($_[0]->reference) }
-
-=head2 $uri->opts
-
-Returns a hashref of options for the $uri (reference and scheme.)
-
-=cut
-
-sub opts { +{
-    reference => $_[0]->reference || undef,
-    scheme => $_[0]->scheme || undef
-} }
 
 =head2 ""
 
@@ -204,6 +196,18 @@ sub eq {
     return $self->obj->eq(ref $other eq blessed $self ? $other->obj : $other);
 }
 
+=head2 $uri->obj
+
+Accessor for the L<URI> object methods are delegated to.
+
+=head2 $uri->factory_class
+
+The class whose constructor was called to create the $uri object, usually
+L<Catalyst::SmartURI> or your own subclass. This is used to call class (rather
+than object) methods.
+
+=cut
+
 # The gory details
 
 sub AUTOLOAD {
@@ -214,7 +218,7 @@ sub AUTOLOAD {
     my $method = substr($AUTOLOAD, rindex($AUTOLOAD, '::')+2);
 
     return if ! blessed $self || $method eq 'DESTROY'
-                              || !  $self->obj->can($method);
+                              || ! $self->obj->can($method);
 
     my $class  = $self->factory_class;
 
@@ -224,13 +228,13 @@ sub AUTOLOAD {
         my $self = shift;
         my @res;
         if (wantarray) {
-            @res    = $self->obj->$method($class->deflate_uris(@_));
+            @res    = $self->obj->$method($class->_deflate_uris(@_));
         } else {
-            $res[0] = $self->obj->$method($class->deflate_uris(@_));
+            $res[0] = $self->obj->$method($class->_deflate_uris(@_));
         }
-        @res = $class->inflate_uris(
+        @res = $class->_inflate_uris(
             \@res,
-            $method ne 'scheme' ? $self->opts : {}
+            $method ne 'scheme' ? $self->_opts : {}
         );
 
         return wantarray ? @res : $res[0];
@@ -284,7 +288,7 @@ sub import {
         my @rel_dir      = @dir[(firstidx { $_ eq 'URI' } @dir) ..  $#dir];
         my $mod          = join '::' => @rel_dir, ($file =~ /^(.*)\.pm\z/);
 
-        my $new_class    = $class->make_uri_class($mod, 0);
+        my $new_class    = $class->_make_uri_class($mod, 0);
 
         push @new_uri_pms, catfile(split /::/, $new_class) . '.pm';
     }
@@ -304,13 +308,28 @@ sub import {
 
 =head1 INTERNAL METHODS
 
-=head2 $class->resolve_uri_class($uri_class)
+These are used internally by SmartURI, and are not interesting for general use,
+maybe for subclassing purposes.
+
+=head2 $uri->_opts
+
+Returns a hashref of options for the $uri (reference and scheme.)
+
+=cut
+
+sub _opts { +{
+    reference => $_[0]->reference || undef,
+    scheme => $_[0]->scheme || undef
+} }
+
+
+=head2 $class->_resolve_uri_class($uri_class)
 
 Converts, eg., "URI::http" to "Catalyst::SmartURI::http".
 
 =cut
 
-sub resolve_uri_class {
+sub _resolve_uri_class {
     my ($class, $uri_class) = @_;
 
     (my $new_class = $uri_class) =~ s/^URI::/${class}::/;
@@ -318,17 +337,18 @@ sub resolve_uri_class {
     return $new_class;
 }
 
-=head2 $class->make_uri_class($uri_class)
+=head2 $class->_make_uri_class($uri_class)
 
 Creates a new proxy class class for a L<URI> class, with all exports and
-constructor intact.
+constructor intact, and returns its name, which is made using
+_resolve_uri_class (above).
 
 =cut
 
-sub make_uri_class {
+sub _make_uri_class {
     my ($class, $uri_class, $re_init_c3) = @_;
 
-    my $new_uri_class = $class->resolve_uri_class($uri_class);
+    my $new_uri_class = $class->_resolve_uri_class($uri_class);
 
     no strict 'refs';
     no warnings 'redefine';
@@ -341,7 +361,7 @@ sub make_uri_class {
         *{$new_uri_class.'::new'} = sub {
             eval "require $uri_class";
             bless {
-                obj => $uri_class->new($class->deflate_uris(@_[1..$#_])),
+                obj => $uri_class->new($class->_deflate_uris(@_[1..$#_])),
                 factory_class => $class
             }, $new_uri_class;
         };
@@ -368,12 +388,12 @@ sub make_uri_class {
                     sub ${new_uri_class}::$_ $proto {
                         my \@res;
                         if (wantarray) {
-                            \@res    = &${sub}($class->deflate_uris(\@_));
+                            \@res    = &${sub}($class->_deflate_uris(\@_));
                         } else {
-                            \$res[0] = &${sub}($class->deflate_uris(\@_));
+                            \$res[0] = &${sub}($class->_deflate_uris(\@_));
                         }
 
-                        \@res = $class->inflate_uris(\\\@res);
+                        \@res = $class->_inflate_uris(\\\@res);
 
                         return wantarray ? \@res : \$res[0];
                     }
@@ -392,7 +412,7 @@ sub make_uri_class {
     return $new_uri_class;
 }
 
-=head2 $class->inflate_uris(\@rray, $opts)
+=head2 $class->_inflate_uris(\@rray, $opts)
 
 Inflate any L<URI> objects in @rray into Catalyst::SmartURI objects, all other
 members pass through unharmed. $opts is a hashref of options to include in the
@@ -400,7 +420,7 @@ objects created.
 
 =cut
 
-sub inflate_uris {
+sub _inflate_uris {
     my $class = shift;
     my ($args, $opts) = @_;
 
@@ -410,25 +430,48 @@ sub inflate_uris {
                     factory_class => $class,
                     (defined $opts ? %$opts : ())
                   },
-                $class->make_uri_class(blessed $_, 1)
+                $class->_make_uri_class(blessed $_, 1)
           :
                 $_
     } @$args;
     @res ? @res == 1 ? $res[0] : @res : ();
 }
 
-=head2 $class->deflate_uris(@rray)
+=head2 $class->_deflate_uris(@rray)
 
 Deflate any L<Catalyst::SmartURI> objects in @rray into the L<URI> objects
 they are proxies for, all other members pass through unharmed.
 
 =cut
 
-sub deflate_uris {
+sub _deflate_uris {
     my $class = shift;
     my @res   = map { blessed $_ && $_->isa($class) ?  $_->{obj} : $_ } @_;
     @res ? @res == 1 ? $res[0] : @res : ();
 }
+
+=head1 MAGICAL IMPORT
+
+On import (when you "use" the module) it loads all the URI .pms into the class
+namespace.
+
+This works:
+
+    use Catalyst::SmartURI;
+    use Catalyst::SmartURI::WithBase;
+    use Catalyst::SmartURI::URL;
+
+    my $url = Catalyst::SmartURI::URL->new(...); # URI::URL proxy
+
+Even this works:
+
+    use Catalyst::SmartURI;
+    use Catalyst::SmartURI::Escape qw(%escapes);
+
+It even works with a subclass of Catalyst::SmartURI.
+
+I only wrote this functionality so that I could run the URI test suite without
+much modification, it has no real practical value.
 
 =head1 AUTHOR
 
