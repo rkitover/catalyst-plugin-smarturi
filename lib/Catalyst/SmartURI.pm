@@ -140,8 +140,9 @@ sub hostless {
 
     my $scheme = $uri->scheme('');
     $uri->host('');
+    $uri->port('');
 
-    $uri->factory_class->new(($uri =~ m!^/*(/.*)!), $_[0]->_opts);
+    $uri->factory_class->new(($uri =~ m!^[/:]*(/.*)!), $_[0]->_opts);
 }
 
 =head2 $uri->reference

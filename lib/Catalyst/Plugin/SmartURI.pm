@@ -47,7 +47,7 @@ that won't break if you've already set your own request_class.
 
 There will be a slight performance penalty for your first few requests, due to
 the way L<Catalyst::SmartURI> works, but after that you shouldn't notice
-it.
+it. The penalty is considerably smaller in perl 5.10+.
 
 =head1 CONFIGURATION
 
