@@ -19,7 +19,11 @@ our $VERSION = '0.01';
 =head1 SYNOPSIS
 
     smarturi:
-        disposition: hostless
+        disposition: hostless # application-wide
+
+    $c->uri_disposition('absolute'); # per request
+
+    <a href="[% c.uri_for('/foo').relative %]" ...
 
 Configure whether $c->uri_for and $c->req->uri_with return absolute, hostless or
 relative URIs and/or configure which URI class to use, on an application or
@@ -40,6 +44,10 @@ uri_class, or write a class that follows the same interface.
 
 This plugin installs a custom $c->request_class, however it does so in a way
 that won't break if you've already set your own request_class.
+
+There will be a slight performance penalty for your first few requests, due to
+the way L<Catalyst::SmartURI> works, but after that you shouldn't notice
+it.
 
 =head1 CONFIGURATION
 

@@ -277,7 +277,7 @@ sub import {
 
     my @uri_pms = File::Find::Rule->extras({untaint => 1})->file->name('*.pm')
         ->in( File::Find::Rule->extras({untaint => 1})->directory
-            ->maxdepth(1)->name('URI')->in(grep !/^CODE\(/, @INC)
+            ->maxdepth(1)->name('URI')->in(grep !ref($_), @INC)
         );
     my @new_uri_pms;
 
