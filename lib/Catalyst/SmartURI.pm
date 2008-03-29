@@ -256,7 +256,7 @@ sub can { # of PORK BRAINS in MILK GRAVY, yum!!!
     local $AUTOLOAD = ref($self)."::$method";
     local $CAN      = 1;
 
-    &{$self->factory_class.'::AUTOLOAD'}($self)
+    $self->$method
 }
 
 # Preload some URI classes, the ones that come in files anyway
@@ -277,7 +277,7 @@ sub import {
 
     my @uri_pms = File::Find::Rule->extras({untaint => 1})->file->name('*.pm')
         ->in( File::Find::Rule->extras({untaint => 1})->directory
-            ->maxdepth(1)->name('URI')->in(@INC)
+            ->maxdepth(1)->name('URI')->in(grep !/^CODE\(/, @INC)
         );
     my @new_uri_pms;
 
@@ -476,6 +476,13 @@ much modification, it has no real practical value.
 =head1 AUTHOR
 
 Rafael Kitover, C<< <rkitover at cpan.org> >>
+
+=head1 COPYRIGHT & LICENSE
+
+Copyright (c) 2008 Rafael Kitover
+
+This program is free software; you can redistribute it and/or modify it under
+the same terms as Perl itself.
 
 =cut
 

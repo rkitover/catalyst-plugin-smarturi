@@ -2,6 +2,7 @@ package Catalyst::Plugin::SmartURI;
 
 use strict;
 use warnings;
+use base qw/Class::Accessor::Fast Class::Data::Inheritable/;
 
 =head1 NAME
 
@@ -17,38 +18,93 @@ our $VERSION = '0.01';
 
 =head1 SYNOPSIS
 
+    smarturi:
+        disposition: hostless
+
 Configure whether $c->uri_for and $c->req->uri_with return absolute, hostless or
-relative URIs.
+relative URIs and/or configure which URI class to use, on an application or
+request basis.
 
 This is useful in situations where you're for example, redirecting to a lighttpd
 from a firewall rule, instead of a real proxy, and you want your links and
 redirects to still work correctly.
 
+=head1 DESCRIPTION
+
+This plugin allows you to configure, on a application and per-request basis,
+what URI class $c->uri_for and $c->req->uri_with use, as well as whether the
+URIs they produce are absolute, hostless or relative.
+
+To use your own URI class, just subclass L<Catalyst::SmartURI> and set
+uri_class, or write a class that follows the same interface.
+
+This plugin installs a custom $c->request_class, however it does so in a way
+that won't break if you've already set your own request_class.
+
+=head1 CONFIGURATION
+
 In myapp.yml:
 
     smarturi:
-        default_disposition: hostless
+        dispostion: absolute
+        uri_class: 'Catalyst::SmartURI'
 
-In MyApp.pm:
+=over
 
-    package MyApp;
+=item disposition
+
+One of 'absolute', 'hostless' or 'relative'. Defaults to 'absolute'.
+
+=item uri_class
+
+The class to use for URIs, defaults to L<Catalyst::SmartURI>.
+
+=back
+
+=head1 PER REQUEST
+
+    package MyAPP::Controller::RSSFeed;
+
     ...
-    use Catalyst qw/SmartURI/;
-    ...
+
+    sub begin : Private {
+        my ($self, $c) = @_;
+
+        $c->uri_class('Your::URI::Class'); # if you need
+        $c->uri_disposition('absolute'); # rest of app configured differently
+    }
+
+=over
+
+=item $c->uri_disposition('absolute'|'hostless'|'relative')
+
+Set URI disposition to use for the duration of the request.
+
+=item $c->uri_class($class)
+
+Set the URI class to use for $c->uri_for and $c->req->uri_with for the duration
+of the request.
+
+=back
+
+=head1 EXTENDING
+
+$c->prepare_uri actually creates the URI, you can overload that to do as you
+please in your own plugins.
 
 =cut
 
 use Class::C3;
 use Class::C3::Componentised;
-use Catalyst::SmartURI;
+
+__PACKAGE__->mk_accessors(qw/uri_disposition uri_class/);
+
+my $context; # keep a copy for the Request class to use
 
 sub uri_for {
     my $c = shift;
 
-    Catalyst::SmartURI->new(
-        $c->next::method(@_),
-        { reference => $c->req->uri }
-    )->hostless;
+    $c->prepare_uri($c->next::method(@_), $c->req)
 }
 
 {
@@ -58,15 +114,16 @@ sub uri_for {
     sub uri_with {
         my $req = shift;
 
-        Catalyst::SmartURI->new(
-            $req->next::method(@_),
-            { reference => $req->uri }
-        )->hostless;
+        $context->prepare_uri($req->next::method(@_), $req)
     }
 }
 
-sub setup_engine {
-    my $app = shift;
+sub setup {
+    my $app    = shift;
+    my $config = $app->config->{smarturi};
+
+    $config->{uri_class}   ||= 'Catalyst::SmartURI';
+    $config->{disposition} ||= 'absolute';
 
     my $request_class = $app->request_class;
 
@@ -83,6 +140,29 @@ sub setup_engine {
     }
 
     $app->next::method(@_)
+}
+
+sub prepare_uri {
+    my ($c, $uri, $req) = @_;
+    my $disposition     = $c->uri_disposition;
+
+    eval 'require '.$c->uri_class;
+
+    $c->uri_class->new($uri, { reference => $req->uri })->$disposition
+}
+
+# Reset accessors to configured values at beginning of request.
+sub prepare {
+    my $app    = shift;
+    my $config = $app->config->{smarturi};
+
+# Also save a copy of the context for the Request class to use.
+    my $c = $context = $app->next::method(@_);
+
+    $c->uri_class($config->{uri_class});
+    $c->uri_disposition($config->{disposition});
+
+    $c
 }
 
 =head1 AUTHOR
@@ -131,9 +211,7 @@ L<http://search.cpan.org/dist/Catalyst-Plugin-SmartURI>
 from #catalyst:
 
 vipul came up with the idea
-
-mst came up with the design and implementation notes for the current version
-
+mst came up with the design and implementation details for the current version
 kd reviewed my code and offered suggestions
 
 =head1 COPYRIGHT & LICENSE
