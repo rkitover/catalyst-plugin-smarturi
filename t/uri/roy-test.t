@@ -10,7 +10,7 @@ if (-d "t") {
    }
 }
 
-use Catalyst::SmartURI;
+use Catalyst::SmartURI '-import_uri_mods';
 $no = 1;
 
 for $i (1..5) {

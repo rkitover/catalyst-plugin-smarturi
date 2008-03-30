@@ -28,7 +28,7 @@ use Test::More tests => 6;
 }
 
 BEGIN {
-    MyURI->import;
+    MyURI->import('-import_uri_mods');
     use_ok('MyURI::URL')
 }
 

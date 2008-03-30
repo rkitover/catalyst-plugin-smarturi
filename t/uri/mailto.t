@@ -2,7 +2,7 @@
 
 print "1..7\n";
 
-use Catalyst::SmartURI;
+use Catalyst::SmartURI '-import_uri_mods';
 
 $u = Catalyst::SmartURI->new('mailto:gisle@aas.no');
 

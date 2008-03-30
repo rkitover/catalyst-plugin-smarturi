@@ -2,7 +2,7 @@
 
 print "1..9\n";
 
-use Catalyst::SmartURI;
+use Catalyst::SmartURI '-import_uri_mods';
 
 $u = Catalyst::SmartURI->new("<rtsp://media.perl.com/fôo.smi/>");
 

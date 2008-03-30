@@ -3,7 +3,7 @@
 print "1..17\n";
 
 use strict;
-use Catalyst::SmartURI;
+use Catalyst::SmartURI '-import_uri_mods';
 use Catalyst::SmartURI::Split qw(uri_split uri_join);
 
 sub j { join("-", map { defined($_) ? $_ : "<undef>" } @_) }

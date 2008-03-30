@@ -11,7 +11,7 @@ if ($@) {
 
 print "1..21\n";
 
-use Catalyst::SmartURI;
+use Catalyst::SmartURI '-import_uri_mods';
 
 $u = Catalyst::SmartURI->new("data:,A%20brief%20note");
 print "not " unless $u->scheme eq "data" && $u->opaque eq ",A%20brief%20note";

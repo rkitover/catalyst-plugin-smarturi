@@ -2,7 +2,7 @@
 
 print "1..5\n";
 
-use Catalyst::SmartURI;
+use Catalyst::SmartURI '-import_uri_mods';
 use Catalyst::SmartURI::URL;
 
 # We used to have problems with URLs that used a base that was

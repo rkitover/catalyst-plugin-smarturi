@@ -3,7 +3,7 @@
 print "1..2\n";
 
 use strict;
-use Catalyst::SmartURI;
+use Catalyst::SmartURI '-import_uri_mods';
 use Catalyst::SmartURI::URL;
 
 my $b = Catalyst::SmartURI::URL->new("http://www/");

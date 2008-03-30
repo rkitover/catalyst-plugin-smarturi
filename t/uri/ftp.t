@@ -3,7 +3,7 @@
 print "1..13\n";
 
 use strict;
-use Catalyst::SmartURI;
+use Catalyst::SmartURI '-import_uri_mods';
 my $uri;
 
 $uri = Catalyst::SmartURI->new("ftp://ftp.example.com/path");

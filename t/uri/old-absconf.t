@@ -2,7 +2,7 @@
 
 print "1..6\n";
 
-use Catalyst::SmartURI;
+use Catalyst::SmartURI '-import_uri_mods';
 use Catalyst::SmartURI::URL qw(url);
 
 # Test configuration via some global variables.

@@ -112,7 +112,7 @@ my $context; # keep a copy for the Request class to use
 sub uri_for {
     my $c = shift;
 
-    $c->prepare_uri($c->next::method(@_), $c->req)
+    $c->prepare_uri($c->next::method(@_))
 }
 
 {
@@ -122,7 +122,7 @@ sub uri_for {
     sub uri_with {
         my $req = shift;
 
-        $context->prepare_uri($req->next::method(@_), $req)
+        $context->prepare_uri($req->next::method(@_))
     }
 }
 
@@ -151,12 +151,12 @@ sub setup {
 }
 
 sub prepare_uri {
-    my ($c, $uri, $req) = @_;
-    my $disposition     = $c->uri_disposition;
+    my ($c, $uri)   = @_;
+    my $disposition = $c->uri_disposition;
 
     eval 'require '.$c->uri_class;
 
-    $c->uri_class->new($uri, { reference => $req->uri })->$disposition
+    $c->uri_class->new($uri, { reference => $c->req->uri })->$disposition
 }
 
 # Reset accessors to configured values at beginning of request.

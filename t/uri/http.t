@@ -2,7 +2,7 @@
 
 print "1..13\n";
 
-use Catalyst::SmartURI;
+use Catalyst::SmartURI '-import_uri_mods';
 
 $u = Catalyst::SmartURI->new("<http://www.perl.com/path?q=fôo>");
 

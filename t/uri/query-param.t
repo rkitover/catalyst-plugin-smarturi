@@ -4,7 +4,7 @@ print "1..18\n";
 
 use strict;
 
-use Catalyst::SmartURI;
+use Catalyst::SmartURI '-import_uri_mods';
 use Catalyst::SmartURI::QueryParam;
 
 my $u = Catalyst::SmartURI->new("http://www.sol.no?foo=4&bar=5&foo=5");

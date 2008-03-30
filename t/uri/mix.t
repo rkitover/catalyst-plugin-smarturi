@@ -3,7 +3,7 @@
 print "1..6\n";
 
 # Test mixing of Catalyst::SmartURI and Catalyst::SmartURI::WithBase objects
-use Catalyst::SmartURI;
+use Catalyst::SmartURI '-import_uri_mods';
 use Catalyst::SmartURI::WithBase;
 use Catalyst::SmartURI::URL;
 

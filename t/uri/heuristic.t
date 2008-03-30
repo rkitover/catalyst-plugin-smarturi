@@ -7,7 +7,7 @@ if (-f "OFFLINE") {
 
 print "1..15\n";
 
-use Catalyst::SmartURI;
+use Catalyst::SmartURI '-import_uri_mods';
 use Catalyst::SmartURI::Heuristic qw(uf_urlstr uf_url);
 if (shift) {
     $URI::Heuristic::DEBUG++;

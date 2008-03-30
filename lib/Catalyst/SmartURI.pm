@@ -260,10 +260,13 @@ sub can { # of PORK BRAINS in MILK GRAVY, yum!!!
     $self->$method
 }
 
-# Preload some URI classes, the ones that come in files anyway
+# Preload some URI classes, the ones that come in files anyway,
+# but only if asked to.
 sub import {
     no strict 'refs';
     my $class = shift;
+
+    return unless $_[0] && $_[0] eq '-import_uri_mods';
 
     return if ${$class.'::__INITIALIZED__'};
 
@@ -453,12 +456,12 @@ sub _deflate_uris {
 
 =head1 MAGICAL IMPORT
 
-On import (when you "use" the module) it loads all the URI .pms into the class
-namespace.
+On import with the C<-import_uri_mods> flag it loads all the URI .pms into your
+class namespace.
 
 This works:
 
-    use Catalyst::SmartURI;
+    use Catalyst::SmartURI '-import_uri_mods';
     use Catalyst::SmartURI::WithBase;
     use Catalyst::SmartURI::URL;
 
@@ -466,7 +469,7 @@ This works:
 
 Even this works:
 
-    use Catalyst::SmartURI;
+    use Catalyst::SmartURI '-import_uri_mods';
     use Catalyst::SmartURI::Escape qw(%escapes);
 
 It even works with a subclass of Catalyst::SmartURI.

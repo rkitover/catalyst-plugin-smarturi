@@ -2,7 +2,7 @@
 
 print "1..11\n";
 
-use Catalyst::SmartURI;
+use Catalyst::SmartURI '-import_uri_mods';
 use strict;
 
 my $u = Catalyst::SmartURI->new('sip:phone@domain.ext');

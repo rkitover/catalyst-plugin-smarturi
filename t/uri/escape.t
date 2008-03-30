@@ -2,7 +2,7 @@
 
 print "1..9\n";
 
-use Catalyst::SmartURI;
+use Catalyst::SmartURI '-import_uri_mods';
 use Catalyst::SmartURI::Escape;
 
 print "not " unless uri_escape("|abcå") eq "%7Cabc%E5";

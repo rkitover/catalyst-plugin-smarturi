@@ -3,7 +3,7 @@
 print "1..9\n";
 
 use strict;
-use Catalyst::SmartURI;
+use Catalyst::SmartURI '-import_uri_mods';
 my $uri = Catalyst::SmartURI->new("http://[FEDC:BA98:7654:3210:FEDC:BA98:7654:3210]:80/index.html");
 
 print "not " unless $uri->as_string eq "http://[FEDC:BA98:7654:3210:FEDC:BA98:7654:3210]:80/index.html";

@@ -4,7 +4,7 @@ use strict;
 use Storable;
 
 if (@ARGV && $ARGV[0] eq "store") {
-    use Catalyst::SmartURI;
+    use Catalyst::SmartURI '-import_uri_mods';
     require Catalyst::SmartURI::URL;
     my $a = {
         u => new Catalyst::SmartURI('http://search.cpan.org/'),

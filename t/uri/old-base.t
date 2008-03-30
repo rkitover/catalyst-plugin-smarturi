@@ -1,6 +1,6 @@
 #!/local/bin/perl -w
 
-use Catalyst::SmartURI;
+use Catalyst::SmartURI '-import_uri_mods';
 use Catalyst::SmartURI::URL qw(url);
 use Catalyst::SmartURI::Escape qw(uri_escape uri_unescape);
 

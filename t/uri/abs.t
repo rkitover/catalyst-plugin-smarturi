@@ -5,7 +5,7 @@ print "1..45\n";
 # This test the resolution of abs path for all examples given
 # in the "Uniform Resource Identifiers (Catalyst::SmartURI): Generic Syntax" document.
 
-use Catalyst::SmartURI;
+use Catalyst::SmartURI '-import_uri_mods';
 $base = "http://a/b/c/d;p?q";
 $testno = 1;
 

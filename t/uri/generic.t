@@ -2,7 +2,7 @@
 
 print "1..48\n";
 
-use Catalyst::SmartURI;
+use Catalyst::SmartURI '-import_uri_mods';
 
 $foo = Catalyst::SmartURI->new("Foo:opaque#frag");
 

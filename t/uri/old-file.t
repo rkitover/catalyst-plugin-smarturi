@@ -1,6 +1,6 @@
 #!perl -w
 
-use Catalyst::SmartURI;
+use Catalyst::SmartURI '-import_uri_mods';
 use Catalyst::SmartURI::file;
 $URI::file::DEFAULT_AUTHORITY = undef;
 
