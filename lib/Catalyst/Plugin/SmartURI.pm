@@ -6,15 +6,15 @@ use base qw/Class::Accessor::Fast Class::Data::Inheritable/;
 
 =head1 NAME
 
-Catalyst::Plugin::SmartURI - Configurable URI disposition
+Catalyst::Plugin::SmartURI - Configurable URIs for Catalyst
 
 =head1 VERSION
 
-Version 0.01
+Version 0.01_01
 
 =cut
 
-our $VERSION = '0.01';
+our $VERSION = '0.01_01';
 
 =head1 SYNOPSIS
 
