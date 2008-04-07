@@ -10,11 +10,11 @@ Catalyst::Plugin::SmartURI - Configurable URIs for Catalyst
 
 =head1 VERSION
 
-Version 0.01_01
+Version 0.01
 
 =cut
 
-our $VERSION = '0.01_01';
+our $VERSION = '0.01';
 
 =head1 SYNOPSIS
 
@@ -43,7 +43,7 @@ To use your own URI class, just subclass L<Catalyst::SmartURI> and set
 uri_class, or write a class that follows the same interface.
 
 This plugin installs a custom $c->request_class, however it does so in a way
-that won't break if you've already set your own request_class.
+that won't break if you've already set $c->request_class yourself (thanks mst!).
 
 There will be a slight performance penalty for your first few requests, due to
 the way L<Catalyst::SmartURI> works, but after that you shouldn't notice
@@ -78,8 +78,8 @@ The class to use for URIs, defaults to L<Catalyst::SmartURI>.
     sub begin : Private {
         my ($self, $c) = @_;
 
-        $c->uri_class('Your::URI::Class'); # if you need
-        $c->uri_disposition('absolute'); # rest of app configured differently
+        $c->uri_class('Your::URI::Class::For::Request');
+        $c->uri_disposition('absolute');
     }
 
 =over
@@ -173,6 +173,10 @@ sub prepare {
     $c
 }
 
+=head1 SEE ALSO
+
+L<Catalyst::SmartURI>, L<Catalyst>, L<URI>
+
 =head1 AUTHOR
 
 Rafael Kitover, C<< <rkitover at cpan.org> >>
@@ -219,8 +223,15 @@ L<http://search.cpan.org/dist/Catalyst-Plugin-SmartURI>
 from #catalyst:
 
 vipul came up with the idea
+
 mst came up with the design and implementation details for the current version
+
 kd reviewed my code and offered suggestions
+
+=head1 TODO
+
+I'd like to extend on L<Catalyst::Plugin::RequireSSL>, and make a plugin that
+rewrites URIs for actions with an SSL attribute.
 
 =head1 COPYRIGHT & LICENSE
 

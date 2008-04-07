@@ -74,7 +74,8 @@ Takes a uri $str and an optional scheme or hashref with a reference uri
 
 The object returned will be blessed into a scheme-specific subclass, based on
 the class of the underlying $uri->obj (L<URI> object.) For example,
-Catalyst::SmartURI::http, and this class derives from the L<Catalyst::SmartURI>.
+Catalyst::SmartURI::http, which derives from L<Catalyst::SmartURI> (or
+$uri->factory_class if you're subclassing.)
 
 =cut
 
@@ -138,7 +139,7 @@ Returns the URI with the scheme and host parts stripped.
 sub hostless {
     my $uri = $_[0]->clone;
 
-    my $scheme = $uri->scheme('');
+    $uri->scheme('');
     $uri->host('');
     $uri->port('');
 
@@ -268,8 +269,6 @@ sub import {
 
     return unless $_[0] && $_[0] eq '-import_uri_mods';
 
-    return if ${$class.'::__INITIALIZED__'};
-
 # File::Find::Rule is not taint safe, and Module::Starter suggests running
 # tests in taint mode. Thanks for helping me with this one Somni!!!
     {
@@ -306,14 +305,12 @@ sub import {
     };
 
     Class::C3::reinitialize;
-
-    ${$class.'::__INITIALIZED__'} = 1;
 }
 
 =head1 INTERNAL METHODS
 
 These are used internally by SmartURI, and are not interesting for general use,
-maybe for subclassing purposes.
+but may be useful for writing subclasses.
 
 =head2 $uri->_opts
 
@@ -472,10 +469,19 @@ Even this works:
     use Catalyst::SmartURI '-import_uri_mods';
     use Catalyst::SmartURI::Escape qw(%escapes);
 
-It even works with a subclass of Catalyst::SmartURI.
+It even works with a subclass of L<Catalyst::SmartURI>.
 
 I only wrote this functionality so that I could run the URI test suite without
 much modification, it has no real practical value.
+
+=head1 SEE ALSO
+
+L<Catalyst::Plugin::SmartURI>, L<URI>, L<URI::WithBase>, L<Catalyst>
+
+=head1 ACKNOWLEDGEMENTS
+
+Thanks to folks on freenode #perl for helping me out when I was getting stuck,
+Somni, reverend, PerlJam and others whose nicks I forget.
 
 =head1 AUTHOR
 
