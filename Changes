@@ -5,3 +5,6 @@ Revision history for Catalyst-Plugin-SmartURI
 
 0.01_01  2008-04-01 08:33:13
 	First dev release.
+
+0.02  2008-06-03 21:58:17
+        Moved Catalyst::SmartURI into a separate dist as URI::SmartURI

@@ -20,8 +20,5 @@ requires:
   Class::Accessor::Fast: 0
   Class::C3::Componentised: 0
   Class::Data::Inheritable: 0
-  File::Find::Rule: 0
-  List::MoreUtils: 0
-  List::Util: 0
-tests: 't/*.t t/*/*.t'
-version: 0.01
+  URI::SmartURI: 0
+version: 0.02

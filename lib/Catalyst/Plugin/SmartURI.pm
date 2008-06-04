@@ -14,7 +14,7 @@ Version 0.01
 
 =cut
 
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 
 =head1 SYNOPSIS
 
@@ -39,14 +39,14 @@ This plugin allows you to configure, on a application and per-request basis,
 what URI class $c->uri_for and $c->req->uri_with use, as well as whether the
 URIs they produce are absolute, hostless or relative.
 
-To use your own URI class, just subclass L<Catalyst::SmartURI> and set
+To use your own URI class, just subclass L<URI::SmartURI> and set
 uri_class, or write a class that follows the same interface.
 
 This plugin installs a custom $c->request_class, however it does so in a way
 that won't break if you've already set $c->request_class yourself (thanks mst!).
 
 There will be a slight performance penalty for your first few requests, due to
-the way L<Catalyst::SmartURI> works, but after that you shouldn't notice
+the way L<URI::SmartURI> works, but after that you shouldn't notice
 it. The penalty is considerably smaller in perl 5.10+.
 
 =head1 CONFIGURATION
@@ -55,7 +55,7 @@ In myapp.yml:
 
     smarturi:
         dispostion: absolute
-        uri_class: 'Catalyst::SmartURI'
+        uri_class: 'URI::SmartURI'
 
 =over
 
@@ -65,7 +65,7 @@ One of 'absolute', 'hostless' or 'relative'. Defaults to 'absolute'.
 
 =item uri_class
 
-The class to use for URIs, defaults to L<Catalyst::SmartURI>.
+The class to use for URIs, defaults to L<URI::SmartURI>.
 
 =back
 
@@ -130,7 +130,7 @@ sub setup {
     my $app    = shift;
     my $config = $app->config->{smarturi};
 
-    $config->{uri_class}   ||= 'Catalyst::SmartURI';
+    $config->{uri_class}   ||= 'URI::SmartURI';
     $config->{disposition} ||= 'absolute';
 
     my $request_class = $app->request_class;
@@ -175,7 +175,7 @@ sub prepare {
 
 =head1 SEE ALSO
 
-L<Catalyst::SmartURI>, L<Catalyst>, L<URI>
+L<URI::SmartURI>, L<Catalyst>, L<URI>
 
 =head1 AUTHOR
 
@@ -184,7 +184,7 @@ Rafael Kitover, C<< <rkitover at cpan.org> >>
 =head1 BUGS
 
 Please report any bugs or feature requests to
-C<bug-catalyst-plugin-relativepaths at rt.cpan.org>, or through the web
+C<bug-catalyst-plugin-smarturi at rt.cpan.org>, or through the web
 interface at
 L<http://rt.cpan.org/NoAuth/ReportBug.html?Queue=Catalyst-Plugin-SmartURI>.  I
 will be notified, and then you'll automatically be notified of progress on your
@@ -232,6 +232,8 @@ kd reviewed my code and offered suggestions
 
 I'd like to extend on L<Catalyst::Plugin::RequireSSL>, and make a plugin that
 rewrites URIs for actions with an SSL attribute.
+
+Make a disposition that is based on the Host header.
 
 =head1 COPYRIGHT & LICENSE
 
