@@ -14,7 +14,7 @@ Version 0.01
 
 =cut
 
-our $VERSION = '0.02';
+our $VERSION = '0.021';
 
 =head1 SYNOPSIS
 
@@ -150,13 +150,18 @@ sub setup {
     $app->next::method(@_)
 }
 
+{
+my %loaded;
+
 sub prepare_uri {
     my ($c, $uri)   = @_;
     my $disposition = $c->uri_disposition;
+    my $uri_class   = $c->uri_class;
 
-    eval 'require '.$c->uri_class;
+    eval "require $uri_class",$loaded{$uri_class}++ unless $loaded{$uri_class};
 
-    $c->uri_class->new($uri, { reference => $c->req->uri })->$disposition
+    $uri_class->new($uri, { reference => $c->req->uri })->$disposition
+}
 }
 
 # Reset accessors to configured values at beginning of request.

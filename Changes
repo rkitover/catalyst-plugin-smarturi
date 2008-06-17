@@ -8,3 +8,6 @@ Revision history for Catalyst-Plugin-SmartURI
 
 0.02  2008-06-03 21:58:17
         Moved Catalyst::SmartURI into a separate dist as URI::SmartURI
+
+0.021  2008-06-16 22:20:42
+        Minor speedup, avoiding unnecessary string evals.
