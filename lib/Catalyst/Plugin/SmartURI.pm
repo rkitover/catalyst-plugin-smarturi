@@ -14,7 +14,7 @@ Version 0.01
 
 =cut
 
-our $VERSION = '0.021';
+our $VERSION = '0.022';
 
 =head1 SYNOPSIS
 
@@ -155,8 +155,8 @@ my %loaded;
 
 sub prepare_uri {
     my ($c, $uri)   = @_;
-    my $disposition = $c->uri_disposition;
-    my $uri_class   = $c->uri_class;
+    my $disposition = $c->uri_disposition || 'absolute';
+    my $uri_class   = $c->uri_class       || 'URI::SmartURI';
 
     eval "require $uri_class",$loaded{$uri_class}++ unless $loaded{$uri_class};
 
