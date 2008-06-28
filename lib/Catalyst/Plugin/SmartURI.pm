@@ -2,7 +2,15 @@ package Catalyst::Plugin::SmartURI;
 
 use strict;
 use warnings;
-use base qw/Class::Accessor::Fast Class::Data::Inheritable/;
+use parent qw/Class::Accessor::Fast Class::Data::Inheritable/;
+
+use Class::C3;
+use Class::C3::Componentised;
+use Scalar::Util 'weaken';
+
+__PACKAGE__->mk_accessors(qw/uri_disposition uri_class/);
+
+my $context; # keep a copy for the Request class to use
 
 =head1 NAME
 
@@ -10,19 +18,23 @@ Catalyst::Plugin::SmartURI - Configurable URIs for Catalyst
 
 =head1 VERSION
 
-Version 0.01
+Version 0.024
 
 =cut
 
-our $VERSION = '0.022';
+our $VERSION = '0.024';
 
 =head1 SYNOPSIS
 
-    smarturi:
-        disposition: hostless # application-wide
+In your .conf:
+    <Plugin::SmartURI>
+        disposition host-header # application-wide
+    </Plugin::SmartURI>
 
-    $c->uri_disposition('absolute'); # per request
+Per request:
+    $c->uri_disposition('absolute');
 
+Methods on URIs:
     <a href="[% c.uri_for('/foo').relative %]" ...
 
 Configure whether $c->uri_for and $c->req->uri_with return absolute, hostless or
@@ -51,17 +63,21 @@ it. The penalty is considerably smaller in perl 5.10+.
 
 =head1 CONFIGURATION
 
-In myapp.yml:
+In myapp.conf:
 
-    smarturi:
-        dispostion: absolute
-        uri_class: 'URI::SmartURI'
+    <Plugin::SmartURI>
+        dispostion absolute
+        uri_class  URI::SmartURI
+    </Plugin::SmartURI>
 
 =over
 
 =item disposition
 
-One of 'absolute', 'hostless' or 'relative'. Defaults to 'absolute'.
+One of 'absolute', 'hostless', 'relative' or 'host-header'.  Defaults to
+'absolute'.
+
+The special disposition 'host-header' uses the value of your 'Host:' header.
 
 =item uri_class
 
@@ -84,7 +100,7 @@ The class to use for URIs, defaults to L<URI::SmartURI>.
 
 =over
 
-=item $c->uri_disposition('absolute'|'hostless'|'relative')
+=item $c->uri_disposition('absolute'|'hostless'|'relative'|'host-header')
 
 Set URI disposition to use for the duration of the request.
 
@@ -101,13 +117,6 @@ $c->prepare_uri actually creates the URI, you can overload that to do as you
 please in your own plugins.
 
 =cut
-
-use Class::C3;
-use Class::C3::Componentised;
-
-__PACKAGE__->mk_accessors(qw/uri_disposition uri_class/);
-
-my $context; # keep a copy for the Request class to use
 
 sub uri_for {
     my $c = shift;
@@ -128,7 +137,7 @@ sub uri_for {
 
 sub setup {
     my $app    = shift;
-    my $config = $app->config->{smarturi};
+    my $config =$app->config->{'Plugin::SmartURI'} || $app->config->{smarturi};
 
     $config->{uri_class}   ||= 'URI::SmartURI';
     $config->{disposition} ||= 'absolute';
@@ -157,20 +166,33 @@ sub prepare_uri {
     my ($c, $uri)   = @_;
     my $disposition = $c->uri_disposition || 'absolute';
     my $uri_class   = $c->uri_class       || 'URI::SmartURI';
+# Need the || for $c->welcome_message, otherwise initialization works fine.
 
     eval "require $uri_class",$loaded{$uri_class}++ unless $loaded{$uri_class};
 
-    $uri_class->new($uri, { reference => $c->req->uri })->$disposition
+    my $res;
+    if ($disposition eq 'host-header') {
+      $res = $uri_class->new($uri, { reference => $c->req->uri })->absolute;
+      my $host = $c->req->header('Host');
+      $host =~ s/:(\d+)$//;
+      $res->host($host);
+      $res->port($1) if $1;
+    } else {
+      $res = $uri_class->new($uri, { reference => $c->req->uri })->$disposition
+    }
+
+    $res
 }
 }
 
 # Reset accessors to configured values at beginning of request.
 sub prepare {
     my $app    = shift;
-    my $config = $app->config->{smarturi};
+    my $config =$app->config->{'Plugin::SmartURI'} || $app->config->{smarturi};
 
 # Also save a copy of the context for the Request class to use.
     my $c = $context = $app->next::method(@_);
+    weaken $context;
 
     $c->uri_class($config->{uri_class});
     $c->uri_disposition($config->{disposition});
@@ -237,8 +259,6 @@ kd reviewed my code and offered suggestions
 
 I'd like to extend on L<Catalyst::Plugin::RequireSSL>, and make a plugin that
 rewrites URIs for actions with an SSL attribute.
-
-Make a disposition that is based on the Host header.
 
 =head1 COPYRIGHT & LICENSE
 

@@ -2,7 +2,7 @@
 
 use strict;
 use warnings;
-use Test::More tests => 4;
+use Test::More tests => 6;
 
 {
     package TestApp;
@@ -32,9 +32,24 @@ use Test::More tests => 4;
         $c->res->output($c->uri_for('/dummy'));
     }
 
+    sub host_header : Global {
+        my ($self, $c) = @_;
+        $c->req->header(Host => 'www.dongs.com');
+        $c->uri_disposition('host-header');
+        $c->res->output($c->uri_for('/dummy'));
+    }
+
+
+    sub host_header_with_port : Global {
+        my ($self, $c) = @_;
+        $c->req->header(Host => 'www.hlagh.com:8080');
+        $c->uri_disposition('host-header');
+        $c->res->output($c->uri_for('/dummy'));
+    }
+
     sub dummy : Global {}
 
-    __PACKAGE__->config->{smarturi}{disposition} = 'hostless';
+    __PACKAGE__->config->{'Plugin::SmartURI'}{disposition} = 'hostless';
     __PACKAGE__->setup();
 }
 
@@ -51,5 +66,11 @@ is(get('/test_req_uri_with'),
 
 is(get('/test_uri_object'), '/test_uri_object',
     'URI objects are functional');
+
+is(get('/host_header'), 'http://www.dongs.com/dummy',
+    'host-header disposition');
+
+is(get('/host_header_with_port'), 'http://www.hlagh.com:8080/dummy',
+    'host-header disposition with port');
 
 # vim: expandtab shiftwidth=4 ts=4 tw=80:

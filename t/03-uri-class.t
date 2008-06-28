@@ -23,7 +23,7 @@ use Test::More tests => 1;
         $c->res->output($c->uri_for('/foo')->mtfnpy)
     }
 
-    __PACKAGE__->config->{smarturi}{uri_class} = 'MyURI';
+    __PACKAGE__->config->{'Plugin::SmartURI'}{uri_class} = 'MyURI';
     __PACKAGE__->setup;
 }
 

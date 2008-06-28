@@ -1,16 +1,23 @@
 Revision history for Catalyst-Plugin-SmartURI
 
 0.01  2008-03-08 03:30:31
-        First version.
+    First version.
 
 0.01_01  2008-04-01 08:33:13
-	First dev release.
+    First dev release.
 
 0.02  2008-06-03 21:58:17
-        Moved Catalyst::SmartURI into a separate dist as URI::SmartURI
+    Moved Catalyst::SmartURI into a separate dist as URI::SmartURI
 
 0.021  2008-06-16 22:20:42
-        Minor speedup, avoiding unnecessary string evals.
+    Minor speedup, avoiding unnecessary string evals.
 
 0.022  2008-06-24 16:52:55
-        Fix weird bug with initialization that sometimes happens.
+    Fix weird bug with initialization that sometimes happens.
+
+0.023  2008-06-28 01:14:49
+    Weaken saved context.
+
+0.024  2008-06-28 03:01:53
+    Added 'host-header' disposition.
+    Converted conf key to 'Plugin::SmartURI'

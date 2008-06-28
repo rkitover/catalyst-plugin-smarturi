@@ -24,7 +24,7 @@ skip 'Catalyst::Action::REST not installed', 1 if eval 'use Catalyst::Action::RE
         $c->res->output($c->req->uri_with({foo => 'bar'}));
     }
 
-    __PACKAGE__->config->{smarturi}{disposition} = 'hostless';
+    __PACKAGE__->config->{'Plugin::SmartURI'}{disposition} = 'hostless';
 
     __PACKAGE__->setup();
 }
