@@ -21,3 +21,6 @@ Revision history for Catalyst-Plugin-SmartURI
 0.024  2008-06-28 03:01:53
     Added 'host-header' disposition.
     Converted conf key to 'Plugin::SmartURI'
+
+0.025  2008-06-28 08:33:57
+    Fucked up the pod for SYNOPSIS...

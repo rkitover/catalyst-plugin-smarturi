@@ -22,19 +22,22 @@ Version 0.024
 
 =cut
 
-our $VERSION = '0.024';
+our $VERSION = '0.025';
 
 =head1 SYNOPSIS
 
 In your .conf:
+
     <Plugin::SmartURI>
         disposition host-header # application-wide
     </Plugin::SmartURI>
 
 Per request:
+
     $c->uri_disposition('absolute');
 
 Methods on URIs:
+
     <a href="[% c.uri_for('/foo').relative %]" ...
 
 Configure whether $c->uri_for and $c->req->uri_with return absolute, hostless or
