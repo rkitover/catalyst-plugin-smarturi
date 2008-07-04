@@ -2,15 +2,18 @@ package Catalyst::Plugin::SmartURI;
 
 use strict;
 use warnings;
-use parent qw/Class::Accessor::Fast Class::Data::Inheritable/;
+use parent 'Class::Accessor::Fast';
 
 use Class::C3;
 use Class::C3::Componentised;
 use Scalar::Util 'weaken';
+use Catalyst::Exception ();
 
 __PACKAGE__->mk_accessors(qw/uri_disposition uri_class/);
 
 my $context; # keep a copy for the Request class to use
+
+my ($conf_disposition, $conf_uri_class); # configured values
 
 =head1 NAME
 
@@ -18,18 +21,19 @@ Catalyst::Plugin::SmartURI - Configurable URIs for Catalyst
 
 =head1 VERSION
 
-Version 0.024
+Version 0.026
 
 =cut
 
-our $VERSION = '0.025';
+our $VERSION = '0.026';
 
 =head1 SYNOPSIS
 
 In your .conf:
 
     <Plugin::SmartURI>
-        disposition host-header # application-wide
+        disposition host-header   # application-wide
+        uri_class   URI::SmartURI # by default
     </Plugin::SmartURI>
 
 Per request:
@@ -40,29 +44,39 @@ Methods on URIs:
 
     <a href="[% c.uri_for('/foo').relative %]" ...
 
+=head1 DESCRIPTION
+
 Configure whether $c->uri_for and $c->req->uri_with return absolute, hostless or
-relative URIs and/or configure which URI class to use, on an application or
-request basis.
+relative URIs, or URIs based on the 'Host' header. Also allows configuring which
+URI class to use. Works on application-wide or per-request basis.
 
 This is useful in situations where you're for example, redirecting to a lighttpd
 from a firewall rule, instead of a real proxy, and you want your links and
 redirects to still work correctly.
 
-=head1 DESCRIPTION
-
-This plugin allows you to configure, on a application and per-request basis,
-what URI class $c->uri_for and $c->req->uri_with use, as well as whether the
-URIs they produce are absolute, hostless or relative.
-
 To use your own URI class, just subclass L<URI::SmartURI> and set
 uri_class, or write a class that follows the same interface.
 
 This plugin installs a custom $c->request_class, however it does so in a way
-that won't break if you've already set $c->request_class yourself (thanks mst!).
+that won't break if you've already set $c->request_class yourself, ie. by using
+L<Catalyst::Action::REST> (thanks mst!).
 
-There will be a slight performance penalty for your first few requests, due to
-the way L<URI::SmartURI> works, but after that you shouldn't notice
-it. The penalty is considerably smaller in perl 5.10+.
+There is a minor performance penalty in perls older than 5.10, due to
+L<Class::C3>, but only at initialization time.
+
+=head1 METHODS
+
+=head2 $c->uri_for
+=head2 $c->req->uri_with
+
+Returns a $c->uri_class object (L<URI::SmartURI> by default) in the configured
+$c->uri_disposition.
+
+=head2 $c->req->uri
+=head2 $c->req->referer
+
+Returns a $c->uri_class object. If the context hasn't been prepared yet, uses
+the configured value for uri_class.
 
 =head1 CONFIGURATION
 
@@ -116,8 +130,7 @@ of the request.
 
 =head1 EXTENDING
 
-$c->prepare_uri actually creates the URI, you can overload that to do as you
-please in your own plugins.
+$c->prepare_uri actually creates the URI, which you can override.
 
 =cut
 
@@ -136,14 +149,41 @@ sub uri_for {
 
         $context->prepare_uri($req->next::method(@_))
     }
+
+    sub uri {
+        my $req = shift;
+
+        my $uri_class = $context ? $context->uri_class : $conf_uri_class;
+
+        $uri_class->new(
+            $req->next::method(@_),
+            { reference => $req->base }
+        )
+    }
+
+    sub referer {
+        my $req = shift;
+
+        my $uri_class = $context ? $context->uri_class : $conf_uri_class;
+
+        $uri_class->new($req->next::method(@_))
+    }
 }
 
 sub setup {
     my $app    = shift;
     my $config =$app->config->{'Plugin::SmartURI'} || $app->config->{smarturi};
 
-    $config->{uri_class}   ||= 'URI::SmartURI';
-    $config->{disposition} ||= 'absolute';
+    ($conf_uri_class, $conf_disposition) = @$config{qw/uri_class disposition/};
+    $conf_uri_class   ||= 'URI::SmartURI';
+    $conf_disposition ||= 'absolute';
+
+    unless (do { no strict 'refs'; %{$conf_uri_class.'::'} }) {
+        eval "require $conf_uri_class";
+        Catalyst::Exception->throw(
+            message => "Could not load configured uri_class $conf_uri_class: $@"
+        ) if $@;
+    }
 
     my $request_class = $app->request_class;
 
@@ -167,19 +207,33 @@ my %loaded;
 
 sub prepare_uri {
     my ($c, $uri)   = @_;
-    my $disposition = $c->uri_disposition || 'absolute';
-    my $uri_class   = $c->uri_class       || 'URI::SmartURI';
+    my $disposition = $c->uri_disposition || $conf_disposition;
+    my $uri_class   = $c->uri_class       || $conf_uri_class;
 # Need the || for $c->welcome_message, otherwise initialization works fine.
 
-    eval "require $uri_class",$loaded{$uri_class}++ unless $loaded{$uri_class};
+    unless ($loaded{$uri_class} || do { no strict 'refs'; %{$uri_class.'::'} }) {
+        eval "require $uri_class";
+        if ($@) {
+            Catalyst::Exception->throw(
+                message => "Could not load configured uri_class $conf_uri_class: $@"
+            );
+        } else {
+            $loaded{$uri_class}++
+        }
+    }
 
     my $res;
     if ($disposition eq 'host-header') {
       $res = $uri_class->new($uri, { reference => $c->req->uri })->absolute;
       my $host = $c->req->header('Host');
       $host =~ s/:(\d+)$//;
+
+      my $port = $1;
+      $port = '' if $c->req->uri->scheme eq 'http'  && $port == 80;
+      $port = '' if $c->req->uri->scheme eq 'https' && $port == 443;
+
       $res->host($host);
-      $res->port($1) if $1;
+      $res->port($port) if $port;
     } else {
       $res = $uri_class->new($uri, { reference => $c->req->uri })->$disposition
     }
@@ -190,15 +244,14 @@ sub prepare_uri {
 
 # Reset accessors to configured values at beginning of request.
 sub prepare {
-    my $app    = shift;
-    my $config =$app->config->{'Plugin::SmartURI'} || $app->config->{smarturi};
+    my $app = shift;
 
 # Also save a copy of the context for the Request class to use.
     my $c = $context = $app->next::method(@_);
     weaken $context;
 
-    $c->uri_class($config->{uri_class});
-    $c->uri_disposition($config->{disposition});
+    $c->uri_class($conf_uri_class);
+    $c->uri_disposition($conf_disposition);
 
     $c
 }
@@ -274,4 +327,4 @@ the same terms as Perl itself.
 
 1; # End of Catalyst::Plugin::SmartURI
 
-# vim: expandtab shiftwidth=4 ts=4 tw=80:
+# vim: expandtab shiftwidth=4 tw=80:

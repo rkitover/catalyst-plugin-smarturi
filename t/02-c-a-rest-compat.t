@@ -6,7 +6,8 @@ use Test::More tests => 1;
 
 SKIP: {
 
-skip 'Catalyst::Action::REST not installed', 1 if eval 'use Catalyst::Action::REST', $@;
+skip 'Catalyst::Action::REST not installed', 1
+    if eval { require Catalyst::Action::REST }, $@;
 
 {
     package TestApp;

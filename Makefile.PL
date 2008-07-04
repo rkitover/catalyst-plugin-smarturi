@@ -7,7 +7,6 @@ author   'Rafael Kitover <rkitover@cpan.org>';
 requires 'Catalyst' => '5.7007';
 requires 'Class::C3::Componentised';
 requires 'Class::Accessor::Fast';
-requires 'Class::Data::Inheritable';
 requires 'URI::SmartURI';
 requires 'Task::Weaken';
 requires 'parent';
