@@ -21,11 +21,11 @@ Catalyst::Plugin::SmartURI - Configurable URIs for Catalyst
 
 =head1 VERSION
 
-Version 0.026
+Version 0.027
 
 =cut
 
-our $VERSION = '0.026';
+our $VERSION = '0.027';
 
 =head1 SYNOPSIS
 
@@ -67,16 +67,27 @@ L<Class::C3>, but only at initialization time.
 =head1 METHODS
 
 =head2 $c->uri_for
+
 =head2 $c->req->uri_with
 
 Returns a $c->uri_class object (L<URI::SmartURI> by default) in the configured
 $c->uri_disposition.
 
 =head2 $c->req->uri
-=head2 $c->req->referer
 
 Returns a $c->uri_class object. If the context hasn't been prepared yet, uses
 the configured value for uri_class.
+
+$c->req->uri->relative will be relative to $c->req->base.
+
+=head2 $c->req->referer
+
+Returns a $c->uri_class object for the referer (or configured uri_class if
+there's no context) with reference set to $c->req->uri if it comes from
+$c->req->base.
+
+In other words, if referer is your web server, you can do
+$c->req->referer->relative and it will do the right thing.
 
 =head1 CONFIGURATION
 
@@ -165,8 +176,15 @@ sub uri_for {
         my $req = shift;
 
         my $uri_class = $context ? $context->uri_class : $conf_uri_class;
+        my $referer   = $req->next::method(@_) || '';
+        my $base      = $req->base;
+        my $uri       = $req->uri;
 
-        $uri_class->new($req->next::method(@_))
+        if ($referer =~ /^$base/) {
+            return $uri_class->new($referer, { reference => $uri })
+        } else {
+            return $uri_class->new($referer);
+        }
     }
 }
 

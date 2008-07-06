@@ -22,4 +22,4 @@ requires:
   Task::Weaken: 0
   URI::SmartURI: 0
   parent: 0
-version: 0.026
+version: 0.027

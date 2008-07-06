@@ -24,3 +24,6 @@ Revision history for Catalyst-Plugin-SmartURI
 
 0.025  2008-06-28 08:33:57
     Fucked up the pod for SYNOPSIS...
+
+0.027  2008-07-06 14:17:12
+    Improved request class, better Host header parsing, fixed POD.
