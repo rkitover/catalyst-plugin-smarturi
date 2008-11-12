@@ -21,11 +21,11 @@ Catalyst::Plugin::SmartURI - Configurable URIs for Catalyst
 
 =head1 VERSION
 
-Version 0.027
+Version 0.029
 
 =cut
 
-our $VERSION = '0.027';
+our $VERSION = '0.029';
 
 =head1 SYNOPSIS
 
@@ -139,6 +139,22 @@ of the request.
 
 =back
 
+=head1 USING WITH Catalyst::Controller::REST
+
+In MyApp.pm do something like this:
+
+    package MyApp;
+
+    use Catalyst::Runtime '5.70';
+    use parent 'Catalyst';
+
+    use Catalyst::Action::REST ();
+
+    __PACKAGE__->setup(qw/... your list of plugins including ... SmartURI .../);
+
+Because L<Catalyst::Action::REST> sets request_class at load time, SmartURI
+needs to see it at setup time to know which request class to extend.
+
 =head1 EXTENDING
 
 $c->prepare_uri actually creates the URI, which you can override.
@@ -244,11 +260,12 @@ sub prepare_uri {
     if ($disposition eq 'host-header') {
       $res = $uri_class->new($uri, { reference => $c->req->uri })->absolute;
       my $host = $c->req->header('Host');
-      $host =~ s/:(\d+)$//;
+      my $port = $host =~ s/:(\d+)$// ? $1 : '';
 
-      my $port = $1;
-      $port = '' if $c->req->uri->scheme eq 'http'  && $port == 80;
-      $port = '' if $c->req->uri->scheme eq 'https' && $port == 443;
+      if ($port) {
+          $port = '' if $c->req->uri->scheme eq 'http'  && $port == 80;
+          $port = '' if $c->req->uri->scheme eq 'https' && $port == 443;
+      }
 
       $res->host($host);
       $res->port($port) if $port;
