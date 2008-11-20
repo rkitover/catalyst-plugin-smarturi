@@ -33,3 +33,6 @@ Revision history for Catalyst-Plugin-SmartURI
 
 0.029  2008-10-09 07:02:46
     Fixed the host-header stuff for when there's no port.
+
+0.030  2008-11-19 17:54:37
+    Fixed for Catalyst 5.8
