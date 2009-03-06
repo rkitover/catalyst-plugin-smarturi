@@ -21,11 +21,11 @@ Catalyst::Plugin::SmartURI - Configurable URIs for Catalyst
 
 =head1 VERSION
 
-Version 0.030
+Version 0.031
 
 =cut
 
-our $VERSION = '0.030';
+our $VERSION = '0.031';
 
 =head1 SYNOPSIS
 
@@ -182,9 +182,11 @@ sub uri_for {
 
         my $uri_class = $context ? $context->uri_class : $conf_uri_class;
 
-        $uri_class->new(
-            $req->next::method(@_),
-            ($req->{base} ? { reference => $req->base } : ())
+        $req->next::method(
+            $uri_class->new(
+                $req->next::method(@_),
+                ($req->{base} ? { reference => $req->base } : ())
+            )
         )
     }
 
