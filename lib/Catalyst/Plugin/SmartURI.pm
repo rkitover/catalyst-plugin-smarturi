@@ -1,17 +1,18 @@
 package Catalyst::Plugin::SmartURI;
 
-use strict;
-use warnings;
-use parent 'Class::Accessor::Fast';
+use Moose;
+use mro 'c3';
 
-use Class::C3;
 use Class::C3::Componentised;
 use Scalar::Util 'weaken';
 use Catalyst::Exception ();
 
-__PACKAGE__->mk_accessors(qw/uri_disposition uri_class/);
+use namespace::clean -except => 'meta';
 
-my $context; # keep a copy for the Request class to use
+has uri_disposition => (is => 'rw', isa => 'Str');
+has uri_class       => (is => 'rw', isa => 'Str');
+
+my $context; # keep a weakend copy for the Request class to use
 
 my ($conf_disposition, $conf_uri_class); # configured values
 
@@ -21,11 +22,11 @@ Catalyst::Plugin::SmartURI - Configurable URIs for Catalyst
 
 =head1 VERSION
 
-Version 0.031
+Version 0.032
 
 =cut
 
-our $VERSION = '0.031';
+our $VERSION = '0.032';
 
 =head1 SYNOPSIS
 
@@ -57,9 +58,9 @@ redirects to still work correctly.
 To use your own URI class, just subclass L<URI::SmartURI> and set
 uri_class, or write a class that follows the same interface.
 
-This plugin installs a custom $c->request_class, however it does so in a way
-that won't break if you've already set $c->request_class yourself, ie. by using
-L<Catalyst::Action::REST> (thanks mst!).
+This plugin installs a custom C<$c->request_class>, however it does so in a way
+that won't break if you've already set C<$c->request_class> yourself, ie. by
+using L<Catalyst::Action::REST> (thanks mst!).
 
 There is a minor performance penalty in perls older than 5.10, due to
 L<Class::C3>, but only at initialization time.
@@ -70,24 +71,24 @@ L<Class::C3>, but only at initialization time.
 
 =head2 $c->req->uri_with
 
-Returns a $c->uri_class object (L<URI::SmartURI> by default) in the configured
-$c->uri_disposition.
+Returns a C<<$c->uri_class>> object (L<URI::SmartURI> by default) in the configured
+C<<$c->uri_disposition>>.
 
 =head2 $c->req->uri
 
-Returns a $c->uri_class object. If the context hasn't been prepared yet, uses
+Returns a C<<$c->uri_class>> object. If the context hasn't been prepared yet, uses
 the configured value for uri_class.
 
-$c->req->uri->relative will be relative to $c->req->base.
+C<$c->req->uri->relative> will be relative to C<$c->req->base>.
 
 =head2 $c->req->referer
 
-Returns a $c->uri_class object for the referer (or configured uri_class if
-there's no context) with reference set to $c->req->uri if it comes from
-$c->req->base.
+Returns a C<$c->uri_class> object for the referer (or configured uri_class if
+there's no context) with reference set to C<<$c->req->uri>> if it comes from
+C<<$c->req->base>>.
 
-In other words, if referer is your web server, you can do
-$c->req->referer->relative and it will do the right thing.
+In other words, if referer is your app, you can do
+C<<$c->req->referer->relative>> and it will do the right thing.
 
 =head1 CONFIGURATION
 
@@ -134,8 +135,8 @@ Set URI disposition to use for the duration of the request.
 
 =item $c->uri_class($class)
 
-Set the URI class to use for $c->uri_for and $c->req->uri_with for the duration
-of the request.
+Set the URI class to use for C<<$c->uri_for>> and C<<$c->req->uri_with> for the
+duration of the request.
 
 =back
 
@@ -169,7 +170,9 @@ sub uri_for {
 
 {
     package Catalyst::Request::SmartURI;
-    use base 'Catalyst::Request';
+    use Moose;
+    extends 'Catalyst::Request';
+    use namespace::clean -except => 'meta';
 
     sub uri_with {
         my $req = shift;
@@ -204,6 +207,8 @@ sub uri_for {
             return $uri_class->new($referer);
         }
     }
+
+    __PACKAGE__->meta->make_immutable;
 }
 
 sub setup {
@@ -214,12 +219,10 @@ sub setup {
     $conf_uri_class   ||= 'URI::SmartURI';
     $conf_disposition ||= 'absolute';
 
-    unless (do { no strict 'refs'; %{$conf_uri_class.'::'} }) {
-        eval "require $conf_uri_class";
-        Catalyst::Exception->throw(
-            message => "Could not load configured uri_class $conf_uri_class: $@"
-        ) if $@;
-    }
+    eval { Class::MOP::load_class($conf_uri_class) };
+    Catalyst::Exception->throw(
+        message => "Could not load configured uri_class $conf_uri_class: $@"
+    ) if $@;
 
     my $request_class = $app->request_class;
 
@@ -238,25 +241,16 @@ sub setup {
     $app->next::method(@_)
 }
 
-{
-my %loaded;
-
 sub prepare_uri {
     my ($c, $uri)   = @_;
     my $disposition = $c->uri_disposition || $conf_disposition;
     my $uri_class   = $c->uri_class       || $conf_uri_class;
 # Need the || for $c->welcome_message, otherwise initialization works fine.
 
-    unless ($loaded{$uri_class} || do { no strict 'refs'; %{$uri_class.'::'} }) {
-        eval "require $uri_class";
-        if ($@) {
-            Catalyst::Exception->throw(
-                message => "Could not load configured uri_class $conf_uri_class: $@"
-            );
-        } else {
-            $loaded{$uri_class}++
-        }
-    }
+    eval { Class::MOP::load_class($uri_class) };
+    Catalyst::Exception->throw(
+        message => "Could not load configured uri_class $uri_class: $@"
+    ) if $@;
 
     my $res;
     if ($disposition eq 'host-header') {
@@ -277,7 +271,6 @@ sub prepare_uri {
 
     $res
 }
-}
 
 # Reset accessors to configured values at beginning of request.
 sub prepare {
@@ -292,6 +285,8 @@ sub prepare {
 
     $c
 }
+
+__PACKAGE__->meta->make_immutable;
 
 =head1 SEE ALSO
 
