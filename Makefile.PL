@@ -11,6 +11,4 @@ requires 'Task::Weaken';
 
 build_requires 'Test::More';
 
-auto_install;
-
 WriteAll;
