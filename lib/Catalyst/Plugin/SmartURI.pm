@@ -22,11 +22,11 @@ Catalyst::Plugin::SmartURI - Configurable URIs for Catalyst
 
 =head1 VERSION
 
-Version 0.032
+Version 0.033
 
 =cut
 
-our $VERSION = '0.032';
+our $VERSION = '0.033';
 
 =head1 SYNOPSIS
 
