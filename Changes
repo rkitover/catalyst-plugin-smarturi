@@ -1,5 +1,9 @@
 Revision history for Catalyst-Plugin-SmartURI
 
+0.034  2009-05-13 23:46:18
+    - fix compatibility with Catalyst::Action::REST v0.71
+    - move inline tests into t/lib
+
 0.033  2009-04-29 19:46:04
     - last dist was missing inc/
 
