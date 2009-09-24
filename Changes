@@ -1,5 +1,8 @@
 Revision history for Catalyst-Plugin-SmartURI
 
+0.035  2009-09-24 04:35:28
+    - fix typo in pod (RT#49933)
+
 0.034  2009-05-13 23:46:18
     - fix compatibility with Catalyst::Action::REST v0.71
     - move inline tests into t/lib

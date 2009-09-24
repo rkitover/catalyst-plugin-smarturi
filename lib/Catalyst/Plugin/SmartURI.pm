@@ -22,11 +22,11 @@ Catalyst::Plugin::SmartURI - Configurable URIs for Catalyst
 
 =head1 VERSION
 
-Version 0.034
+Version 0.035
 
 =cut
 
-our $VERSION = '0.034';
+our $VERSION = '0.035';
 
 =head1 SYNOPSIS
 
@@ -95,8 +95,8 @@ C<<$c->req->referer->relative>> and it will do the right thing.
 In myapp.conf:
 
     <Plugin::SmartURI>
-        dispostion absolute
-        uri_class  URI::SmartURI
+        disposition absolute
+        uri_class   URI::SmartURI
     </Plugin::SmartURI>
 
 =over

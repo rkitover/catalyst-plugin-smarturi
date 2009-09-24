@@ -1,4 +1,4 @@
-use inc::Module::Install 0.87;
+use inc::Module::Install 0.91;
 
 name     'Catalyst-Plugin-SmartURI';
 all_from 'lib/Catalyst/Plugin/SmartURI.pm';
