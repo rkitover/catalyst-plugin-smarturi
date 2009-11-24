@@ -22,11 +22,11 @@ Catalyst::Plugin::SmartURI - Configurable URIs for Catalyst
 
 =head1 VERSION
 
-Version 0.035
+Version 0.036
 
 =cut
 
-our $VERSION = '0.035';
+our $VERSION = '0.036';
 
 =head1 SYNOPSIS
 
@@ -47,7 +47,7 @@ Methods on URIs:
 
 =head1 DESCRIPTION
 
-Configure whether $c->uri_for and $c->req->uri_with return absolute, hostless or
+Configure whether C<< $c->uri_for >> and C<< $c->req->uri_with >> return absolute, hostless or
 relative URIs, or URIs based on the 'Host' header. Also allows configuring which
 URI class to use. Works on application-wide or per-request basis.
 
@@ -56,10 +56,10 @@ from a firewall rule, instead of a real proxy, and you want your links and
 redirects to still work correctly.
 
 To use your own URI class, just subclass L<URI::SmartURI> and set
-uri_class, or write a class that follows the same interface.
+C<uri_class>, or write a class that follows the same interface.
 
-This plugin installs a custom C<$c->request_class>, however it does so in a way
-that won't break if you've already set C<$c->request_class> yourself, ie. by
+This plugin installs a custom C<< $c->request_class >>, however it does so in a way
+that won't break if you've already set C<< $c->request_class >> yourself, ie. by
 using L<Catalyst::Action::REST> (thanks mst!).
 
 There is a minor performance penalty in perls older than 5.10, due to
@@ -71,24 +71,24 @@ L<Class::C3>, but only at initialization time.
 
 =head2 $c->req->uri_with
 
-Returns a C<<$c->uri_class>> object (L<URI::SmartURI> by default) in the configured
-C<<$c->uri_disposition>>.
+Returns a C<< $c->uri_class >> object (L<URI::SmartURI> by default) in the configured
+C<< $c->uri_disposition >>.
 
 =head2 $c->req->uri
 
-Returns a C<<$c->uri_class>> object. If the context hasn't been prepared yet, uses
-the configured value for uri_class.
+Returns a C<< $c->uri_class >> object. If the context hasn't been prepared yet, uses
+the configured value for C<uri_class>.
 
-C<$c->req->uri->relative> will be relative to C<$c->req->base>.
+C<< $c->req->uri->relative >> will be relative to C<< $c->req->base >>.
 
 =head2 $c->req->referer
 
-Returns a C<$c->uri_class> object for the referer (or configured uri_class if
-there's no context) with reference set to C<<$c->req->uri>> if it comes from
-C<<$c->req->base>>.
+Returns a C<< $c->uri_class >> object for the referer (or configured C<uri_class> if
+there's no context) with reference set to C<< $c->req->uri >> if it comes from
+C<< $c->req->base >>.
 
 In other words, if referer is your app, you can do
-C<<$c->req->referer->relative>> and it will do the right thing.
+C<< $c->req->referer->relative >> and it will do the right thing.
 
 =head1 CONFIGURATION
 
@@ -135,14 +135,14 @@ Set URI disposition to use for the duration of the request.
 
 =item $c->uri_class($class)
 
-Set the URI class to use for C<<$c->uri_for>> and C<<$c->req->uri_with> for the
+Set the URI class to use for C<< $c->uri_for >> and C<< $c->req->uri_with >> for the
 duration of the request.
 
 =back
 
 =head1 EXTENDING
 
-$c->prepare_uri actually creates the URI, which you can override.
+C<< $c->prepare_uri >> actually creates the URI, which you can override.
 
 =cut
 

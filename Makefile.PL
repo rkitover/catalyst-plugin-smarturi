@@ -18,4 +18,10 @@ auto_provides;
 auto_install;
 resources repository => 'http://dev.catalyst.perl.org/repos/Catalyst/Catalyst-Plugin-SmartURI/1.000/trunk/';
 
+if ($Module::Install::AUTHOR) {
+    system('pod2text lib/Catalyst/Plugin/SmartURI.pm > README');
+}
+
+realclean_files 'README';
+
 WriteAll;
