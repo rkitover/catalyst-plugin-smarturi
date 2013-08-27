@@ -23,6 +23,21 @@ Catalyst::Plugin::SmartURI - Configurable URIs for Catalyst
 
 =head1 SYNOPSIS
 
+In your lib/MyApp.pm, load the plugin and your other plugins, for example:
+
+    use Catalyst qw/
+        -Debug
+        ConfigLoader
+        Static::Simple
+        Session
+        Session::Store::Memcached
+        Session::State::Cookie
+        Authentication
+        Authorization::Roles
+        +CatalystX::SimpleLogin
+        SmartURI
+    /;
+
 In your .conf:
 
     <Plugin::SmartURI>

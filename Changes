@@ -3,6 +3,7 @@ Revision history for Catalyst-Plugin-SmartURI
 {{$NEXT}}
     - converted to git and moved to github
     - converted to dzil
+    - add plugin loading example to SYNOPSIS (RT#88069)
 
 0.036  2009-11-24 09:08:09
     - POD fixes from Frank Wiegand (RT#51885)
