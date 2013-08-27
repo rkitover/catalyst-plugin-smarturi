@@ -3,6 +3,7 @@ package Catalyst::Plugin::SmartURI;
 use Moose;
 use mro 'c3';
 
+use 5.008001;
 use Class::C3::Componentised;
 use Scalar::Util 'weaken';
 use Catalyst::Exception ();
@@ -19,14 +20,6 @@ my ($conf_disposition, $conf_uri_class); # configured values
 =head1 NAME
 
 Catalyst::Plugin::SmartURI - Configurable URIs for Catalyst
-
-=head1 VERSION
-
-Version 0.036
-
-=cut
-
-our $VERSION = '0.036';
 
 =head1 SYNOPSIS
 
@@ -347,6 +340,6 @@ the same terms as Perl itself.
 
 =cut
 
-1; # End of Catalyst::Plugin::SmartURI
+__PACKAGE__; # End of Catalyst::Plugin::SmartURI
 
 # vim: expandtab shiftwidth=4 tw=80:
