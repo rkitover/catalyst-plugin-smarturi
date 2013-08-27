@@ -1,6 +1,8 @@
 Revision history for Catalyst-Plugin-SmartURI
 
 {{$NEXT}}
+
+0.037 2013-08-26 23:50:44
     - converted to git and moved to github
     - converted to dzil
     - add plugin loading example to SYNOPSIS (RT#88069)
