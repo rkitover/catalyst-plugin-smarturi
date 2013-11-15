@@ -2,7 +2,7 @@
 
 use strict;
 use warnings;
-use Test::More tests => 8;
+use Test::More;
 use FindBin '$Bin';
 use lib "$Bin/lib";
 use Catalyst::Test 'TestApp';
@@ -30,10 +30,30 @@ $req->header(Host => 'www.hlagh.com:8080');
 is(request($req)->content, 'http://www.hlagh.com:8080/dummy',
     'host-header disposition with port');
 
+my %try_referers = (
+    foo     => 'foo',
+    blank   => '',
+    'undef' => undef
+);
+
+while (my ($referer_val_name, $referer_val) = each %try_referers) {
+    $req = HTTP::Request->new(GET => '/say_referer');
+    $req->header(Referer => $referer_val);
+
+    my $content = request($req)->content;
+
+    is($content, $referer_val_name,
+        "Referer: $referer_val_name gives \$c->req->referer of '$content'");
+}
+
 is(get('/req_uri_class'), 'MyURI::http http://localhost/req_uri_class',
     'overridden $c->req->uri');
 
-like(get('/req_referer_class'), qr/^MyURI::/,
+$req = HTTP::Request->new(GET => '/req_referer_class');
+$req->header(Referer => 'dummy');
+like(get($req), qr/^MyURI::/,
     'overridden $c->req->referer');
 
-# vim: expandtab shiftwidth=4 tw=80:
+done_testing;
+
+# vim: expandtab shiftwidth=4:

@@ -189,7 +189,11 @@ sub uri_for {
         my $req = shift;
 
         my $uri_class = $context ? $context->uri_class : $conf_uri_class;
-        my $referer   = $req->next::method(@_) || '';
+
+        my $referer   = $req->next::method(@_);
+
+        return $referer if not defined $referer;
+
         my $base      = $req->base;
         my $uri       = $req->uri;
 

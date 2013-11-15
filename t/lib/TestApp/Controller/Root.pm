@@ -48,6 +48,14 @@ sub req_referer_class : Global {
     $c->res->output(ref $c->req->referer);
 }
 
+sub say_referer : Global {
+    my ($self, $c) = @_;
+
+    my $r = $c->req->referer;
+
+    $c->res->output((!defined $r) ? 'undef' : $r eq '' ? 'blank' : $r);
+}
+
 sub dummy : Global {}
 
 1;
