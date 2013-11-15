@@ -1,6 +1,8 @@
 Revision history for Catalyst-Plugin-SmartURI
 
 {{$NEXT}}
+
+0.038 2013-11-14 20:02:08
     - return undef for $c->req->referer correctly when there is no Referer
       header
 
