@@ -7,6 +7,7 @@ use 5.008001;
 use Class::C3::Componentised;
 use Scalar::Util 'weaken';
 use Catalyst::Exception ();
+use Class::Load ();
 
 use namespace::clean -except => 'meta';
 
@@ -215,7 +216,7 @@ sub setup {
     $conf_uri_class   ||= 'URI::SmartURI';
     $conf_disposition ||= 'absolute';
 
-    eval { Class::MOP::load_class($conf_uri_class) };
+    eval { Class::Load::load_class($conf_uri_class) };
     Catalyst::Exception->throw(
         message => "Could not load configured uri_class $conf_uri_class: $@"
     ) if $@;
@@ -226,7 +227,7 @@ sub setup {
         my $new_request_class = $app.'::Request::SmartURI';
 
         my $inject_rest = (not $request_class->isa('Catalyst::Request::REST'))
-            && eval { Class::MOP::load_class('Catalyst::Request::REST') };
+            && eval { Class::Load::load_class('Catalyst::Request::REST') };
 
         Class::C3::Componentised->inject_base(
             $new_request_class,
@@ -249,7 +250,7 @@ sub prepare_uri {
     my $uri_class   = $c->uri_class       || $conf_uri_class;
 # Need the || for $c->welcome_message, otherwise initialization works fine.
 
-    eval { Class::MOP::load_class($uri_class) };
+    eval { Class::Load::load_class($uri_class) };
     Catalyst::Exception->throw(
         message => "Could not load configured uri_class $uri_class: $@"
     ) if $@;

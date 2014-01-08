@@ -1,8 +1,9 @@
 package TestApp::Controller::REST;
 
 use parent 'Catalyst::Controller';
+use Class::Load ();
 
-eval { Class::MOP::load_class('Catalyst::Action::REST') } && eval q{
+eval { Class::Load::load_class('Catalyst::Action::REST') } && eval q{
     sub foo : Global ActionClass('REST') {}
 
     sub foo_GET {
