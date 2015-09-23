@@ -163,6 +163,7 @@ sub uri_for {
 
 {
     package Catalyst::Request::SmartURI;
+
     use Moose;
     extends 'Catalyst::Request';
     use namespace::clean -except => 'meta';
@@ -177,6 +178,10 @@ sub uri_for {
         my $req = shift;
 
         my $uri_class = $context ? $context->uri_class : $conf_uri_class;
+
+        my $uri = $req->next::method(@_);
+
+        return $uri if not defined $uri;
 
         $req->next::method(
             $uri_class->new(
