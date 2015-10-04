@@ -1,6 +1,7 @@
 Revision history for Catalyst-Plugin-SmartURI
 
 {{$NEXT}}
+    - skip infinite recursion test on 5.8 because of broken Time::HiRes
 
 0.040 2015-09-23 06:53:54
     - fix infinite recursion on undef $req->uri #1

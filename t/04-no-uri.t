@@ -2,7 +2,7 @@
 
 use strict;
 use warnings;
-use Test::More;
+use Test::More $] < 5.010 ? (skip_all => 'broken Time::HiRes on perl 5.8') : ();
 use FindBin '$Bin';
 use lib "$Bin/lib";
 use TestApp;
